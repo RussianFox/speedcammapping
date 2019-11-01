@@ -1,0 +1,4 @@
+#! /bin/sh
+cd /srv/www/htdocs/speedcammapping/server/scripts/
+php /srv/www/htdocs/speedcammapping/server/scripts/set_gibdd.php >> /var/log/speedcammapping/gibdd.log
+php /srv/www/htdocs/speedcammapping/server/scripts/set_speedcamonline.php >> /var/log/speedcammapping/speedcamonline.log

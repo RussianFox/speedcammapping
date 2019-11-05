@@ -16,8 +16,93 @@
 	<script src="https://cdn.jsdelivr.net/npm/js-cookie@beta/dist/js.cookie.min.js"></script>
 	
 <style>
+html {
+  box-sizing: border-box;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
 body {
     margin: 0;
+	padding: 0;
+}
+
+.josm_edit {
+	display: inline-block;
+	cursor: pointer;
+	background-image: url(src/img/medium/josm.png);
+	width: 20px;
+    height: 20px;
+    background-size: 20px 20px;
+}
+
+.element_ico {
+	display: inline-block;
+	width: 20px;
+    height: 20px;
+	margin-right: 3px;
+	padding:0;
+}
+
+.element_img {
+	display: inline-block;
+	width: 20px;
+    height: 20px;
+    background-size: 20px 20px;
+	cursor: pointer;
+}
+
+.element_osm {
+	margin-top:2px;
+	display: inline-block;
+}
+
+.marked .element_osm {
+	cursor: pointer;
+	width: 20px;
+    height: 20px;
+    background-size: 20px 20px;
+}
+
+.marked .osm_node {
+	background-image: url(src/img/medium/osm-node.svg);
+}
+
+.marked .osm_way {
+	background-image: url(src/img/medium/osm-way.svg);
+}
+
+.marked .osm_relation {
+	background-image: url(src/img/medium/osm-relation.svg);
+}
+
+.element_span {
+	display: block;
+	background-color: green;
+	margin-bottom:3px;
+	padding:2px;
+}
+
+.element_span.marked {
+	background-color: gray;
+}
+
+#mapid {
+    width: 70%;
+    height: 100%;
+    position: relative;
+    cursor: crosshair;
+    display: inline-block;
+}
+
+#elements_list {
+    height: 100%;
+    display: inline-block;
+    width: 30%;
+    vertical-align: top;
+	overflow: scroll;
 }
 
 div.message {
@@ -41,6 +126,8 @@ div.message.error {
     z-index:900;
     text-align:center;
 }
+
+
 
 .overpass-button {
 	width: 30px;
@@ -69,130 +156,11 @@ div.message.error {
 </head>
 <body">
 
-<div id="tabs" hidden="true">
-  <ul>
-    <li title="ДТП"><a href="#tabs-1"><img style='max-width: 16px;' src="src/img/medium/accident.png"></a></li>
-    <li title="Сообщение"><a href="#tabs-2"><img style='max-width: 16px;' src="src/img/medium/message.png"></a></li>
-    <li title="Камера"><a href="#tabs-3"><img style='max-width: 16px;' src="src/img/medium/cam.png"></a></li>
-	<li title="Дорожные работы"><a href="#tabs-4"><img style='max-width: 16px;' src="src/img/medium/maintenance.png"></a></li>
-	<li title="Проезд заблокирован"><a href="#tabs-5"><img style='max-width: 16px;' src="src/img/medium/block.png"></a></li>
-	<li title="SOS"><a href="#tabs-6"><img style='max-width: 16px;' src="src/img/medium/sos.png"></a></li>
-	<li title="Другое"><a href="#tabs-7"><img style='max-width: 16px;' src="src/img/medium/other.png"></a></li>
-  </ul>
-  <div id="tabs-1" objectType='accident'>
-    	<div>
-		  <fieldset class="additions">
-			<legend>Выбор полос: </legend>
-			<label for="lanes-1-left"><img title="Левая полоса" style='max-width: 20px;' src="src/img/medium/lanes_left.png"></label>
-			<input type="checkbox" name="addition" value=";leftlane" id="lanes-1-left">
-			<label for="lanes-1-center"><img title="Центральная полоса" style='max-width: 20px;' src="src/img/medium/lanes_center.png"></label>
-			<input type="checkbox" name="addition" value=";centerlane" id="lanes-1-center">
-			<label for="lanes-1-right"><img title="Правая полоса" style='max-width: 20px;' src="src/img/medium/lanes_right.png"></label>
-			<input type="checkbox" name="addition" value=";rightlane" id="lanes-1-right">
-		  </fieldset>
-		</div>
-		<div>
-			<label for="tabs-1-text">Ваше сообщение:</label>
-			<textarea cols="40" rows="4" class="usermessage" id="tabs-1-text" value="" data-clear-btn="true"></textarea>
-		</div>
-		<div>
-			<a class="ui-button send">Отправить</a>
-			<a class="ui-button close-popup">Закрыть</a>
-		</div>
-	</div>
-    
-  <div id="tabs-2" objectType='message'>
-    	<div>
-			<label for="tabs-2-text">Ваше сообщение:</label>
-			<textarea cols="40" rows="4" class="usermessage" id="tabs-2-text" value="" data-clear-btn="true"></textarea>
-		</div>
-		<div>
-			<a class="ui-button send">Отправить</a>
-			<a class="ui-button close-popup">Закрыть</a>
-		</div>
-  </div>
-  <div id="tabs-3" objectType='cam'>
-    	<div>
-		  <fieldset class="additions">
-			<legend>Выбор направления: </legend>
-			<label for="direct-3-north"><img title="Север" style='max-width: 20px;' src="src/img/medium/dirs_north.png"></label>
-			<input type="checkbox" name="addition" value=";north" id="direct-3-north">
-			<label for="direct-3-east"><img title="Восток" style='max-width: 20px;' src="src/img/medium/dirs_east.png"></label>
-			<input type="checkbox" name="addition" value=";east" id="direct-3-east">
-			<label for="direct-3-south"><img title="Юг" style='max-width: 20px;' src="src/img/medium/dirs_south.png"></label>
-			<input type="checkbox" name="addition" value=";south" id="direct-3-south">
-			<label for="direct-3-west"><img title="Запад" style='max-width: 20px;' src="src/img/medium/dirs_west.png"></label>
-			<input type="checkbox" name="addition" value=";west" id="direct-3-west">
-		  </fieldset>
-		</div>
-		<div>
-			<a class="ui-button send">Отправить</a>
-			<a class="ui-button close-popup">Закрыть</a>
-		</div>
-  </div>
-  <div id="tabs-4" objectType='maintenance'>
-    	<div>
-		  <fieldset class="additions">
-			<legend>Выбор полос: </legend>
-			<label for="lanes-2-left"><img title="Левая полоса" style='max-width: 20px;' src="src/img/medium/lanes_left.png"></label>
-			<input type="checkbox" name="addition" value=";leftlane" id="lanes-2-left">
-			<label for="lanes-2-center"><img title="Центральная полоса" style='max-width: 20px;' src="src/img/medium/lanes_center.png"></label>
-			<input type="checkbox" name="addition" value=";centerlane" id="lanes-2-center">
-			<label for="lanes-2-right"><img title="Правая полоса" style='max-width: 20px;' src="src/img/medium/lanes_right.png"></label>
-			<input type="checkbox" name="addition" value=";rightlane" id="lanes-2-right">
-		  </fieldset>
-		</div>
-		<div>
-			<label for="tabs-4-text">Ваше сообщение:</label>
-			<textarea cols="40" rows="4" class="usermessage" id="tabs-4-text" value="" data-clear-btn="true"></textarea>
-		</div>
-		<div>
-			<a class="ui-button send">Отправить</a>
-			<a class="ui-button close-popup">Закрыть</a>
-		</div>
-  </div>
-  <div id="tabs-5" objectType='block'>
-    	<div>
-		  <fieldset class="additions">
-			<legend>Выбор направления: </legend>
-			<label for="direct-5-forward"><img title="По направлению движения" style='max-width: 20px;' src="src/img/medium/dirs_forward.png"></label>
-			<input type="checkbox" name="addition" value=";forward" id="direct-5-forward">
-			<label for="direct-5-backward"><img title="В обратном направлении движения" style='max-width: 20px;' src="src/img/medium/dirs_backward.png"></label>
-			<input type="checkbox" name="addition" value=";backward" id="direct-5-backward">
-		  </fieldset>
-		</div>
-		<div>
-			<label for="tabs-5-text">Ваше сообщение:</label>
-			<textarea cols="40" rows="4" class="usermessage" id="tabs-5-text" value="" data-clear-btn="true"></textarea>
-		</div>
-		<div>
-			<a class="ui-button send">Отправить</a>
-			<a class="ui-button close-popup">Закрыть</a>
-		</div>
-  </div>
-  <div id="tabs-6" objectType='sos'>
-		<div>
-			<label for="tabs-6-text">Ваше сообщение:</label>
-			<textarea cols="40" rows="4" class="usermessage" id="tabs-6-text" value="" data-clear-btn="true"></textarea>
-		</div>
-		<div>
-			<a class="ui-button send">Отправить</a>
-			<a class="ui-button close-popup">Закрыть</a>
-		</div>
-  </div>
-  <div id="tabs-7" objectType='other'>
-		<div>
-			<label for="tabs-7-text">Ваше сообщение:</label>
-			<textarea cols="40" rows="4" class="usermessage" id="tabs-7-text" value="" data-clear-btn="true"></textarea>
-		</div>
-		<div>
-			<a class="ui-button send">Отправить</a>
-			<a class="ui-button close-popup">Закрыть</a>
-		</div>
-  </div>
-</div>
 
-<div id="mapid" style="width: 100%; height: 100%;">
+<div style="width: 100%; height: 100%;">
+	<div id="mapid"></div><div id="elements_list">
+
+	</div>
 </div>
 <script>
 
@@ -214,22 +182,10 @@ div.message.error {
 
 	rsLayers['overpass'] = L.layerGroup().addTo(mymap)
 	rsLayers['cam'] = L.layerGroup().addTo(mymap)
-	rsLayers['other'] = L.layerGroup()
-	rsLayers['maintenance'] = L.layerGroup()
-	rsLayers['block'] = L.layerGroup()
-	rsLayers['message'] = L.layerGroup()
-	rsLayers['accident'] = L.layerGroup()
-	rsLayers['sos'] = L.layerGroup()
 	
 	var overlayMaps = {
 		"Overpass": rsLayers['overpass'],
-		"Камеры": rsLayers['cam'],
-		"ДТП": rsLayers['accident'],
-		"Сообщения": rsLayers['message'],
-		"Дорожные работы": rsLayers['maintenance'],
-		"Блокировки проезда": rsLayers['block'],
-		"Просьбы о помощи": rsLayers['sos'],
-		"Другое": rsLayers['other']
+		"Камеры": rsLayers['cam']
 	};
 
 	var baseMap = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
@@ -378,6 +334,9 @@ var redIcon = new L.Icon({
 								if (from.distanceTo(to)<30) {
 									rsMarkers[quadr][marker].setIcon(rsIcons['dcam']);
 									mymap.removeLayer(rsMarkers[quadr][marker]);
+									$('#element_'+quadr+marker).addClass('marked');
+									$('#element_'+quadr+marker+' .element_osm').addClass('osm_'+els[item].type);
+									$('#element_'+quadr+marker+' .element_osm').click(function() { openurl('https://openstreetmap.org/'+els[item].type+'/'+els[item].id); });
 									check=0;
 									break markerloop;
 								} else {
@@ -398,9 +357,17 @@ var redIcon = new L.Icon({
 	};
 	
 	rsDebug=false
-	popupContent = $('#tabs')[0].innerHTML
-	var popup = L.popup({ maxWidth: 325, closeOnClick: false, autoClose: false, closeButton: false}).setContent('<div id=popup_tabs style="">'+popupContent+'</div>');
-	$('#tabs').remove()
+
+	function josmedit(e) {
+		lat=1*e.attributes['lat'].value
+		lng=1*e.attributes['lng'].value
+		url='http://127.0.0.1:8111/load_and_zoom?left='+(lng-0.05)+'&top='+(lat+0.02)+'&right='+(lng+0.05)+'&bottom='+(lat-0.02)
+		$.get(url)
+	}
+
+	function openurl(url) {
+		window.open(url,"_blank")
+	}
 
 	function debug(obj) {
 		if (rsDebug) {
@@ -660,6 +627,7 @@ var redIcon = new L.Icon({
 					newMarker.feature = {properties: {index: item._index, id: item._id, type: item._source.type, source: item._source.source}}
 					rsMarkers[quadr][item._index+item._id] = newMarker
 					rsLayers[item._source.type].addLayer(rsMarkers[quadr][item._index+item._id]);
+					$('#elements_list').append('<span class="element_span" id="element_'+quadr+item._index+item._id+'"><div class="element_ico"><div onclick="click_onmarker([\''+quadr+'\',\''+item._index+item._id+'\'])" class="element_img" style="background-image: url(src/img/medium/'+item._source.type+'.png);"></div><div class="element_osm"></div></div>'+item._source.text+'<div lat='+item._source.location.lat+' lng='+item._source.location.lon+' class="josm_edit" onclick="josmedit(this)"></div></span>');
 				}
 				rsNewMarkers.push(''+item._index+item._id)
 			});
@@ -667,7 +635,8 @@ var redIcon = new L.Icon({
 			rsOldMarkers.forEach(function(element) {
 				if (!rsNewMarkers.includes(element)) {
 					mymap.removeLayer(rsMarkers[quadr][element])
-					delete rsMarkers[quadr][parseInt(element)]
+					delete rsMarkers[quadr][element]
+					$('#element_'+element).detach();
 				}
 			})
 		}).always(function() {
@@ -678,12 +647,21 @@ var redIcon = new L.Icon({
 		});
 	}
 	
+	function click_onmarker(ee) {
+		if (rsMarkers[ee[0]] !== undefined) {
+			if (rsMarkers[ee[0]][ee[1]] !== undefined) {
+				rsMarkers[ee[0]][ee[1]].fire('click');
+			}
+		}
+	}
+	
 	function deleteQuadr(quadr) {
 		if (rsMarkers[quadr] == 'needLoad') {
 		
 		} else {
 			$.each(rsMarkers[quadr], function(id, item) {
 				mymap.removeLayer(item);
+				$('#element_'+quadr+id).remove();
 			})
 		}
 		delete rsMarkers[quadr]

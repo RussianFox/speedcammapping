@@ -35,7 +35,7 @@ body {
 	background-image: url(src/img/medium/josm.png);
 	width: 20px;
     height: 20px;
-    background-size: 20px 20px;
+	background-size: contain;
 }
 
 .element_ico {
@@ -50,7 +50,7 @@ body {
 	display: inline-block;
 	width: 20px;
     height: 20px;
-    background-size: 20px 20px;
+	background-size: contain;
 	cursor: pointer;
 }
 
@@ -63,7 +63,7 @@ body {
 	cursor: pointer;
 	width: 20px;
     height: 20px;
-    background-size: 20px 20px;
+	background-size: contain;
 }
 
 .marked .osm_node {
@@ -80,9 +80,10 @@ body {
 
 .element_span {
 	display: block;
-	background-color: green;
+	background-color: #a4e2a4;
+	margin:1px;
 	margin-bottom:3px;
-	padding:2px;
+	padding:5px;
 }
 
 .element_span.marked {
@@ -134,6 +135,7 @@ div.message.error {
 	height: 30px;
 	background-color: white;
 	background-image: url('src/img/small/overpass.png');
+	background-size: contain;
 }
 
 .overpass-loading {
@@ -247,12 +249,16 @@ var ovepassLoading = false
 		bounds = mymap.getBounds()
 		$.ajax({
 			url:
-				'https://www.overpass-api.de/api/interpreter?' + 
-				'[out:json][timeout:60];' + 
+				'https://www.overpass-api.de/api/interpreter?',
+			data:
+				'data=[out:json][timeout:60];' + 
+				'(' +
 				'node[highway=speed_camera]('+bounds._southWest.lat+','+bounds._southWest.lng+','+bounds._northEast.lat+','+bounds._northEast.lng+');' + 
-				'out;',
+				'relation[type=enforcement][enforcement=maxspeed]('+bounds._southWest.lat+','+bounds._southWest.lng+','+bounds._northEast.lat+','+bounds._northEast.lng+');' + 
+				');(._;>;);out;',
 			dataType: 'json',
-			type: 'GET',
+			type: 'POST',
+			contentType: "application/json",
 			async: true,
 			crossDomain: true
 		}).done(function(e) {
@@ -294,8 +300,16 @@ var redIcon = new L.Icon({
 });
 
 	function overpassLoad(els) {
+		needline=true;
+		maxdistance=30;
 		rsLayers['overpass'].clearLayers();
 		for (item in els) {
+			if (els[item].tags == undefined) {
+				continue;
+			};
+			if (els[item].type == 'relation') {
+				continue;
+			};
 			var to = L.latLng(els[item].lat, els[item].lon);
 			var check=1;
 			var source1 = false
@@ -329,9 +343,10 @@ var redIcon = new L.Icon({
 									needcheck=true
 								}
 							}
+							needcheck=true; needline=false; maxdistance=100; //this is for not check source, distance only
 							if (needcheck) {
 								from = rsMarkers[quadr][marker]._latlng
-								if (from.distanceTo(to)<30) {
+								if (from.distanceTo(to)<maxdistance) {
 									rsMarkers[quadr][marker].setIcon(rsIcons['dcam']);
 									mymap.removeLayer(rsMarkers[quadr][marker]);
 									$('#element_'+quadr+marker).addClass('marked');
@@ -341,8 +356,10 @@ var redIcon = new L.Icon({
 									break markerloop;
 								} else {
 									//добавить линию
-									rsLayers['overpass'].addLayer(L.polyline([from,to]))
-									icon = redIcon
+									if (needline) {
+										rsLayers['overpass'].addLayer(L.polyline([from,to]))
+										icon = redIcon
+									}
 								}
 							}
 						}
@@ -601,7 +618,7 @@ var redIcon = new L.Icon({
 			rsMarkers[quadr] = new Object
 		}
 
-		$.getJSON('https://roadsituation.lisss.website/get.php?quadr='+quadr, function(data) {
+		$.getJSON('https://speedcammapping.lisss.website/get.php?quadr='+quadr, function(data) {
 
 			quadr=data.quadr.id
 			debug('Loaded '+quadr)
@@ -627,7 +644,7 @@ var redIcon = new L.Icon({
 					newMarker.feature = {properties: {index: item._index, id: item._id, type: item._source.type, source: item._source.source}}
 					rsMarkers[quadr][item._index+item._id] = newMarker
 					rsLayers[item._source.type].addLayer(rsMarkers[quadr][item._index+item._id]);
-					$('#elements_list').append('<span class="element_span" id="element_'+quadr+item._index+item._id+'"><div class="element_ico"><div onclick="click_onmarker([\''+quadr+'\',\''+item._index+item._id+'\'])" class="element_img" style="background-image: url(src/img/medium/'+item._source.type+'.png);"></div><div class="element_osm"></div></div>'+item._source.text+'<div lat='+item._source.location.lat+' lng='+item._source.location.lon+' class="josm_edit" onclick="josmedit(this)"></div></span>');
+					$('#elements_list').append('<span class="element_span" id="element_'+quadr+item._index+item._id+'"><div class="element_ico"><div onclick="click_onmarker([\''+quadr+'\',\''+item._index+item._id+'\'])" class="element_img" style="background-image: url(src/img/medium/'+item._source.type+'.png);"></div><div class="element_osm"></div></div>'+item._source.text+'<br>'+link+'<div lat='+item._source.location.lat+' lng='+item._source.location.lon+' class="josm_edit" onclick="josmedit(this)"></div></span>');
 				}
 				rsNewMarkers.push(''+item._index+item._id)
 			});
@@ -725,7 +742,7 @@ var redIcon = new L.Icon({
 			}
 		}
 		
-		if (rsNewLayers.length>70) {
+		if (rsNewLayers.length>200) {
 			enableLoading=false;
 			clearMap();
 			userError("Try zooming out or downsizing the window");

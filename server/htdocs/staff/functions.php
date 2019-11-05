@@ -353,25 +353,25 @@ function get_quadr($quadr) {
     $iall = 0;
     
     do {
-        $params['index'] = 'roadsituation*';
-	$params['size'] = 100;
-	$params['from'] = $iloaded;
-        $params['body']['query']['geo_bounding_box']['location'] =
-		[
-		    'top_left'=>[
-			'lat'=>$coords['y2'],
-			'lon'=>$coords['x1']
-		    ],
-		    'bottom_right'=>[
-			'lat'=>$coords['y1'],
-			'lon'=>$coords['x2']
-		    ]
-		];
-	$result = $client->search($params);
-	$items = array_merge($items,$result['hits']['hits']);
-	$iloaded=count($items);
-	$iall = $iloaded;
-	$iall = 1*$result['hits']['total']['value'];
+        $params['index'] = 'speedcammapping*';
+		$params['size'] = 100;
+		$params['from'] = $iloaded;
+			$params['body']['query']['geo_bounding_box']['location'] =
+			[
+				'top_left'=>[
+					'lat'=>$coords['y2'],
+					'lon'=>$coords['x1']
+				],
+				'bottom_right'=>[
+					'lat'=>$coords['y1'],
+					'lon'=>$coords['x2']
+				]
+			];
+		$result = $client->search($params);
+		$items = array_merge($items,$result['hits']['hits']);
+		$iloaded=count($items);
+		$iall = $iloaded;
+		$iall = 1*$result['hits']['total']['value'];
     } while ($iloaded<$iall);
     $quadrdata=[];
     $quadrdata['quadr']['id']=1*$quadr;

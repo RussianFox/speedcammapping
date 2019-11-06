@@ -34,7 +34,7 @@ $needclean=true;
 
 foreach ($files as $file) {
     $ii=0;
-    echo "Region ".$file."\r\n";
+    echo "Region: ".$file."\r\n";
     $url = "https://speedcamonline.ru/primo/$file/nomobile/";
     echo "File ".$url;
     $filec = @file($url,false,$context);
@@ -44,7 +44,8 @@ foreach ($files as $file) {
 	    $cam = explode(",", $line);
     	    if (count($cam)==7) {
     		$ii++;
-    		$id=$file.(1*trim($cam[0]));
+    		$id=(1*trim($cam[0]));
+    		$fullid=$file.$id;
 		$lng=1*trim($cam[1]);
 		$lat=1*trim($cam[2]);
 	        $speed=1*trim($cam[4]);
@@ -53,7 +54,7 @@ foreach ($files as $file) {
 		if ( ($speed>0) and ($direction>0) ) {
 		    $text="Speed: ".$speed." ".($direction==1?"one way":"in both direction");
 		};
-		update_object_int($id,$lng,$lat,"cam",$text,null,"http://speedcamonline.ru/point/$file/$id",$index);
+		update_object_int($fullid,$lng,$lat,"cam",$text,null,"http://speedcamonline.ru/point/$file/$id",$index);
 		$ids[]=$id;
 	    }
 	};
@@ -65,7 +66,7 @@ foreach ($files as $file) {
 };
 
 if ($needclean) {
-    echo "Start cleaning";
+    echo "Start cleaning\r\n";
     clean_objects($index,'must_not',$ids);
 };
 

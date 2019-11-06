@@ -90,12 +90,33 @@ body {
 	background-color: gray;
 }
 
+.hidemarked .element_span.marked {
+	display: none;
+}
+
+.hidegibdd .element_span.fromgibdd {
+	display: none;
+}
+
+.hidespeedcaminfo .element_span.fromspeedcaminfo {
+	display: none;
+}
+
 #mapid {
     width: 70%;
     height: 100%;
     position: relative;
     cursor: crosshair;
     display: inline-block;
+}
+
+#elements_filter {
+    height: 50px;
+    display: inline-block;
+    width: 100%;
+	position:absolut;
+	top:0;
+	left:0;
 }
 
 #elements_list {
@@ -120,15 +141,13 @@ div.message.error {
 #consoleDiv {
     position:absolute;
     top:5;
-    margin-left: 20%;
-    width: 60%;
+    margin-left: 10%;
+    width: 55%;
     border: 0px solid #73AD21;
     padding: 10px;
     z-index:900;
     text-align:center;
 }
-
-
 
 .overpass-button {
 	width: 30px;
@@ -160,11 +179,39 @@ div.message.error {
 
 
 <div style="width: 100%; height: 100%;">
-	<div id="mapid"></div><div id="elements_list">
-
-	</div>
-</div>
+<div id="mapid"></div><div id="elements_list"><div id=elements_filter>
+<input type="checkbox" id="elements_filter_hidemarked" value="supress">
+<label for="elements_filter_hidemarked">Hide marked</label>
+<input type="checkbox" id="elements_filter_showspeedcaminfo" checked>
+<label for="elements_filter_hidemarked">Show from speedcaminfo</label>
+<input type="checkbox" id="elements_filter_showgibdd" checked>
+<label for="elements_filter_hidemarked">Show from gibdd</label>
+</div></div></div>
 <script>
+
+	$('#elements_filter_hidemarked').change(function(){
+		if($(this).is(":checked")) {
+			$('#elements_list').addClass('hidemarked');
+		} else {
+			$('#elements_list').removeClass('hidemarked');
+		}
+	});
+
+	$('#elements_filter_showspeedcaminfo').change(function(){
+		if($(this).is(":checked")) {
+			$('#elements_list').removeClass('hidespeedcaminfo');
+		} else {
+			$('#elements_list').addClass('hidespeedcaminfo');
+		}
+	});
+	
+	$('#elements_filter_showgibdd').change(function(){
+		if($(this).is(":checked")) {
+			$('#elements_list').removeClass('hidegibdd');
+		} else {
+			$('#elements_list').addClass('hidegibdd');
+		}
+	});
 
 	$.ajaxSetup({
 		timeout:28000 // in milliseconds 
@@ -644,7 +691,13 @@ var redIcon = new L.Icon({
 					newMarker.feature = {properties: {index: item._index, id: item._id, type: item._source.type, source: item._source.source}}
 					rsMarkers[quadr][item._index+item._id] = newMarker
 					rsLayers[item._source.type].addLayer(rsMarkers[quadr][item._index+item._id]);
-					$('#elements_list').append('<span class="element_span" id="element_'+quadr+item._index+item._id+'"><div class="element_ico"><div onclick="click_onmarker([\''+quadr+'\',\''+item._index+item._id+'\'])" class="element_img" style="background-image: url(src/img/medium/'+item._source.type+'.png);"></div><div class="element_osm"></div></div>'+item._source.text+'<br>'+link+'<div lat='+item._source.location.lat+' lng='+item._source.location.lon+' class="josm_edit" onclick="josmedit(this)"></div></span>');
+					span_class="fromspeedcaminfo"
+					switch(item._index) {
+						case 'speedcammapping_speedcamonline': span_class="fromspeedcaminfo"; break;
+						case 'speedcammapping_gibdd': span_class="fromgibdd"; break;
+						default: span_class="undefined"
+					};
+					$('#elements_list').append('<span class="element_span '+span_class+'" id="element_'+quadr+item._index+item._id+'"><div class="element_ico"><div onclick="click_onmarker([\''+quadr+'\',\''+item._index+item._id+'\'])" class="element_img" style="background-image: url(src/img/medium/'+item._source.type+'.png);"></div><div class="element_osm"></div></div>'+item._source.text+'<br>'+link+'<div lat='+item._source.location.lat+' lng='+item._source.location.lon+' class="josm_edit" onclick="josmedit(this)"></div></span>');
 				}
 				rsNewMarkers.push(''+item._index+item._id)
 			});

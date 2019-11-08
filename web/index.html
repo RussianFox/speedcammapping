@@ -214,7 +214,7 @@ div.message.error {
 	});
 
 	$.ajaxSetup({
-		timeout:28000 // in milliseconds 
+		timeout:60000 // in milliseconds 
 	});
 
 	var mymap = L.map('mapid');
@@ -228,6 +228,8 @@ div.message.error {
 	}
 	
 	var rsLayers = new Object
+	var rsMarkers = new Object
+	var rsLoadQuadrs = new Object
 
 	rsLayers['overpass'] = L.layerGroup().addTo(mymap)
 	rsLayers['cam'] = L.layerGroup().addTo(mymap)
@@ -287,24 +289,45 @@ mymap.addControl(new overpassControl());
 mymap.addControl(new downloadControl());
 var ovepassLoading = false
 
-	function overpassRequest() {
-		if (ovepassLoading == true) {
-			return
-		}
-		ovepassLoading = true
+function overpassRequest() {
+	if (ovepassLoading) {
+		return
+	}
+	ovepassLoading = true
+	jQuery('.overpass-button').addClass('overpass-loading');
+	bounds = mymap.getBounds()
+	$.ajax({
+		url:
+			'https://speedcammapping.lisss.website/overpass.php?bbox='+bounds._southWest.lat+','+bounds._southWest.lng+','+bounds._northEast.lat+','+bounds._northEast.lng,
+		dataType: 'json',
+		type: 'GET',
+		contentType: "application/json",
+		async: true,
+		crossDomain: true
+	}).done(function(e) {
+		overpassLoad(e.elements);
+	}).fail(function(error) {
+		userError('Error loading from http://overpass-api.de/ Try again later.')
+		debug(error);
+	}).always(function() {
+		ovepassLoading = false
+		jQuery('.overpass-button').removeClass('overpass-loading');
+	});
+}
+
+function overpassRequestNew() {
+	if (ovepassLoading) {
+		return
+	}
+	
+	for (var quadr in rsMarkers) {
+		ovepassLoading = ovepassLoading+1
 		jQuery('.overpass-button').addClass('overpass-loading');
-		bounds = mymap.getBounds()
 		$.ajax({
 			url:
-				'https://www.overpass-api.de/api/interpreter?',
-			data:
-				'data=[out:json][timeout:60];' + 
-				'(' +
-				'node[highway=speed_camera]('+bounds._southWest.lat+','+bounds._southWest.lng+','+bounds._northEast.lat+','+bounds._northEast.lng+');' + 
-				'relation[type=enforcement][enforcement=maxspeed]('+bounds._southWest.lat+','+bounds._southWest.lng+','+bounds._northEast.lat+','+bounds._northEast.lng+');' + 
-				');(._;>;);out;',
+				'https://speedcammapping.lisss.website/overpass.php?quadr='+quadr,
 			dataType: 'json',
-			type: 'POST',
+			type: 'GET',
 			contentType: "application/json",
 			async: true,
 			crossDomain: true
@@ -314,10 +337,14 @@ var ovepassLoading = false
 			userError('Error loading from http://overpass-api.de/ Try again later.')
 			debug(error);
 		}).always(function() {
-			ovepassLoading = false
-			jQuery('.overpass-button').removeClass('overpass-loading');
+			ovepassLoading = ovepassLoading-1
+			if (ovepassLoading < 1) {
+				ovepassLoading = false
+				jQuery('.overpass-button').removeClass('overpass-loading');
+			}
 		});
 	}
+}
 
 	function overpassPopup(el) {
 		text = ''
@@ -681,7 +708,7 @@ var redIcon = new L.Icon({
 	}
 	
 	function showMarker(quadr,element) {
-		if ( (rsMarkers[quadr] != undefined) && (rsMarkers[quadr] != 'needLoad') ) {
+		if (rsMarkers[quadr] != undefined) {
 			if (rsMarkers[quadr][element] != undefined) {
 				marker = rsMarkers[quadr][element]
 				if (inMap(marker._latlng.lat, marker._latlng.lng)) {
@@ -713,8 +740,11 @@ var redIcon = new L.Icon({
 		}
 		rsLoads = rsLoads+1
 		jQuery('.download-control').addClass('download-now');
-		if (rsMarkers[quadr] == 'needLoad') {
+		if (rsMarkers[quadr] == undefined) {
 			rsMarkers[quadr] = new Object
+		}
+		if (rsLoadQuadrs[quadr]) {
+			delete rsLoadQuadrs[quadr]
 		}
 
 		$.getJSON('https://speedcammapping.lisss.website/get.php?quadr='+quadr, function(data) {
@@ -735,7 +765,7 @@ var redIcon = new L.Icon({
 						link=false
 					}
 					addition = parseTypesObj(item._source.type)+' '+parseAdditions(item._source.addition)
-					popupText="<img style='max-width: 25px;' src='src/img/medium/"+item._source.type+".png'> "+ParseData(item._source.time)+" <br />"+addition +" <p><b>"+item._source.text+"</b></p><div style='text-align:right'>"+link+"</div>"
+					popupText="<img style='max-width: 25px;' src='src/img/medium/"+item._source.type+".png'> "+ParseData(item._source.time)+" <br />"+addition +" <p><b>"+item._source.text+"</b></p> <div lat='"+item._source.location.lat+"' lng='"+item._source.location.lon+"' class='josm_edit' onclick='josmedit(this)'></div> <div style='text-align:right'>"+link+"</div>"
 					newMarker = L.marker([item._source.location.lat, item._source.location.lon],{icon: rsIcons[item._source.type]}).bindPopup(popupText).on('popupopen', objectPopup)
 					newMarker.feature = {properties: {index: item._index, id: item._id, type: item._source.type, source: item._source.source, text: item._source.text, link: link}}
 					rsMarkers[quadr][item._index+item._id] = newMarker
@@ -745,8 +775,8 @@ var redIcon = new L.Icon({
 			rsOldMarkers = Object.keys(rsMarkers[quadr])
 			rsOldMarkers.forEach(function(element) {
 				if (!rsNewMarkers.includes(element)) {
-					mymap.removeLayer(rsMarkers[quadr][element])
 					$('#element_'+quadr+element).remove();
+					mymap.removeLayer(rsMarkers[quadr][element])
 					delete rsMarkers[quadr][element]
 				}
 				showMarker(quadr,element)
@@ -768,16 +798,14 @@ var redIcon = new L.Icon({
 	}
 	
 	function deleteQuadr(quadr) {
-		if (rsMarkers[quadr] == 'needLoad') {
-		
-		} else {
+		if (rsMarkers[quadr] != undefined) {
 			$.each(rsMarkers[quadr], function(id, item) {
 				mymap.removeLayer(item);
 				$('#element_'+quadr+id).remove();
 			})
+			delete rsMarkers[quadr]
+			debug('Deleted  '+quadr)
 		}
-		delete rsMarkers[quadr]
-		debug('Deleted  '+quadr)
 	}
 	
 	function loadMarkers(onlyNew=false) {
@@ -788,13 +816,11 @@ var redIcon = new L.Icon({
 		debug('Start loading...')
 		if (onlyNew) {
 			loadingLayers = []
-			for (var prop in rsMarkers) {
-				if (rsMarkers[prop] == 'needLoad') {
-					loadingLayers.push(prop);
-				}
+			for (var prop in rsLoadQuadrs) {
+				loadingLayers.push(prop);
 			}
 		} else {
-			loadingLayers = Object.keys(rsMarkers)
+			loadingLayers = Object.keys(rsMarkers).concat(Object.keys(rsLoadQuadrs))
 		}
 		loadingLayers.forEach(function(element) {
 			loadQuadr(element);
@@ -855,7 +881,7 @@ var redIcon = new L.Icon({
 		
 		rsNewLayers.forEach(function(element) {
 			if (!rsOldLayers.includes(''+element)) {
-				rsMarkers[element] = 'needLoad';
+				rsLoadQuadrs[element] = true;
 			}
 		})
 		

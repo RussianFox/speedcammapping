@@ -426,14 +426,19 @@ var redIcon = new L.Icon({
 	function josmedit(e) {
 		lat=1*e.attributes['lat'].value
 		lng=1*e.attributes['lng'].value
+		ctop = lat+0.001
+		cbottom = lat-0.001
+		cright = lng+0.002
+		cleft = lng-0.002
 		osm=false
 		if (e.attributes['osm'] != undefined) {
 			osm=e.attributes['osm'].value
 		}
-		url='http://127.0.0.1:8111/load_and_zoom?left='+(lng-0.05)+'&top='+(lat+0.02)+'&right='+(lng+0.05)+'&bottom='+(lat-0.02)
+		url='http://127.0.0.1:8111/load_and_zoom?left='+cleft+'&top='+ctop+'&right='+cright+'&bottom='+cbottom
 		if (osm) {
 			url = url+'&select='+osm
 		}
+		mymap.fitBounds([[ctop,cleft], [cbottom,cright]]);
 		$.get(url)
 	}
 

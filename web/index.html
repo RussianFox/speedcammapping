@@ -189,34 +189,18 @@ div.message.error {
 </div></div></div>
 <script>
 
-	$('#elements_filter_hidemarked').change(function(){
-		if($(this).is(":checked")) {
-			$('#elements_list').addClass('hidemarked');
-		} else {
-			$('#elements_list').removeClass('hidemarked');
-		}
-	});
+	var rsDebug=false
 
-	$('#elements_filter_showspeedcaminfo').change(function(){
-		if($(this).is(":checked")) {
-			$('#elements_list').removeClass('hidespeedcaminfo');
-		} else {
-			$('#elements_list').addClass('hidespeedcaminfo');
-		}
-	});
-	
-	$('#elements_filter_showgibdd').change(function(){
-		if($(this).is(":checked")) {
-			$('#elements_list').removeClass('hidegibdd');
-		} else {
-			$('#elements_list').addClass('hidegibdd');
-		}
-	});
+	var rsLayers = new Object
+	var rsMarkers = new Object
+	var rsLoadQuadrs = new Object
+	var ovepassLoading = false
+	var rsLoads = 0
+	var rsIcons = new Object();
+	var rsMarkers = new Object();
+	enableLoading = false
 
-	$.ajaxSetup({
-		timeout:60000 // in milliseconds 
-	});
-
+//setup map
 	var mymap = L.map('mapid');
 	
 	if (Cookies.get('mapCenter')) {
@@ -227,13 +211,20 @@ div.message.error {
 		mymap.setView([59.023,30.123], 13)
 	}
 	
-	var rsLayers = new Object
-	var rsMarkers = new Object
-	var rsLoadQuadrs = new Object
-
+	//mymap.on('click', onMapClick);
+	mymap.on('moveend', changeQuadrs);
+	mymap.on('dragend', function() {
+		saveMapPosition()
+		changeMap()
+	});
+	mymap.on('zoomend', function() {
+		saveMapPosition() 
+		changeMap()
+	});
+	
 	rsLayers['overpass'] = L.layerGroup().addTo(mymap)
 	rsLayers['cam'] = L.layerGroup().addTo(mymap)
-	
+
 	var overlayMaps = {
 		"Overpass": rsLayers['overpass'],
 		"Камеры": rsLayers['cam']
@@ -258,74 +249,168 @@ div.message.error {
 
 	L.control.layers(baseMaps, overlayMaps).addTo(mymap);
 
-var downloadControl = L.Control.extend({
-  options: {
-    position: 'topright' 
-  },
-  onAdd: function (map) {
-    var container = L.DomUtil.create('div', 'download-control download-now');
-    return container;
-  }
-});
-
-var overpassControl = L.Control.extend({
- 
-  options: {
-    position: 'topleft' 
-  },
- 
-  onAdd: function (map) {
-    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom overpass-button');
-  
-    container.onclick = function(e){
-	  overpassRequest();
-	  e.stopPropagation();
-    }
-    return container;
-  }
- 
-});
-mymap.addControl(new overpassControl());
-mymap.addControl(new downloadControl());
-var ovepassLoading = false
-
-function overpassRequest() {
-	if (ovepassLoading) {
-		return
-	}
-	ovepassLoading = true
-	jQuery('.overpass-button').addClass('overpass-loading');
-	bounds = mymap.getBounds()
-	$.ajax({
-		url:
-			'https://speedcammapping.lisss.website/overpass.php?bbox='+bounds._southWest.lat+','+bounds._southWest.lng+','+bounds._northEast.lat+','+bounds._northEast.lng,
-		dataType: 'json',
-		type: 'GET',
-		contentType: "application/json",
-		async: true,
-		crossDomain: true
-	}).done(function(e) {
-		overpassLoad(e.elements);
-	}).fail(function(error) {
-		userError('Error loading from http://overpass-api.de/ Try again later.')
-		debug(error);
-	}).always(function() {
-		ovepassLoading = false
-		jQuery('.overpass-button').removeClass('overpass-loading');
+	var downloadControl = L.Control.extend({
+	  options: {
+		position: 'topright' 
+	  },
+	  onAdd: function (map) {
+		var container = L.DomUtil.create('div', 'download-control download-now');
+		return container;
+	  }
 	});
-}
 
-function overpassRequestNew() {
-	if (ovepassLoading) {
-		return
-	}
+	var overpassControl = L.Control.extend({
+	  options: {
+		position: 'topleft' 
+	  },
+	 
+	  onAdd: function (map) {
+		var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom overpass-button');
+	  
+		container.onclick = function(e){
+		  overpassRequest();
+		  e.stopPropagation();
+		}
+		return container;
+	  }
+	 
+	});
+
+	var posistionMarks = L.Control.extend({
+	  options: {
+		position: 'topright' 
+	  },
+	 
+	  onAdd: function (map) {
+		var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom posistion-marks');
+	  
+		container.onmouseleave = function(e){
+		  
+		  e.stopPropagation();
+		}
+		container.onmouseout = function(e){
+		  e.stopPropagation();
+		}
+		return container;
+	  }
+	 
+	});
+
+	mymap.addControl(new overpassControl());
+	mymap.addControl(new downloadControl());
 	
-	for (var quadr in rsMarkers) {
-		ovepassLoading = ovepassLoading+1
+//setupIcons
+	var greenIcon = new L.Icon({
+	  iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+	  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+	  iconSize: [25, 41],
+	  iconAnchor: [12, 41],
+	  popupAnchor: [1, -34],
+	  shadowSize: [41, 41]
+	});
+
+	var redIcon = new L.Icon({
+	  iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+	  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+	  iconSize: [25, 41],
+	  iconAnchor: [12, 41],
+	  popupAnchor: [1, -34],
+	  shadowSize: [41, 41]
+	});
+	var rsIcon = L.Icon.extend({
+		options: {
+			shadowUrl: 'src/img/medium/marker-red.png',
+			iconSize:     [14, 14],
+			shadowSize:   [20, 20],
+			iconAnchor:   [18, 18],
+			shadowAnchor: [20, 20],
+			popupAnchor:  [-14, -14]
+		}
+	});
+
+	L.icon = function (options) {
+		return new L.Icon(options);
+	};
+
+	rsIcons['other'] = new rsIcon({iconUrl: 'src/img/small/other.png'});
+	rsIcons['cam'] = new rsIcon({iconUrl: 'src/img/small/cam.png'});
+	rsIcons['dcam'] = new rsIcon({iconUrl: 'src/img/small/dcam.png'});
+	rsIcons['maintenance'] = new rsIcon({iconUrl: 'src/img/small/maintenance.png'});
+	rsIcons['accident'] = new rsIcon({iconUrl: 'src/img/small/accident.png'});
+	rsIcons['block'] = new rsIcon({iconUrl: 'src/img/small/block.png'});
+	rsIcons['sos'] = new rsIcon({iconUrl: 'src/img/small/sos.png'});
+	
+	rsIcons['message'] = L.icon(
+		{
+			iconUrl: 'src/img/small/message.png',
+			iconSize:     [14, 14], // size of the icon
+			iconAnchor:   [10, 14], // point of the icon which will correspond to marker's location
+			popupAnchor:  [0, -7] // point from which the popup should open relative to the iconAnchor
+		}
+	);
+
+//language
+	typesObjLang = {
+		'accident': 'ДТП',
+		'cam': 'Камера',
+		'maintenance': 'Дорожные работы',
+		'block': 'Движение заблокировано',
+		'message': 'Сообщение',
+		'sos': 'Просьба о помощи',
+		'other': 'Иное',
+	}
+
+//setup page
+	$.ajaxSetup({
+		timeout:60000 // in milliseconds 
+	});
+
+	$('#elements_filter_hidemarked').change(function(){
+		if($(this).is(":checked")) {
+			$('#elements_list').addClass('hidemarked');
+		} else {
+			$('#elements_list').removeClass('hidemarked');
+		}
+	});
+
+	$('#elements_filter_showspeedcaminfo').change(function(){
+		if($(this).is(":checked")) {
+			$('#elements_list').removeClass('hidespeedcaminfo');
+		} else {
+			$('#elements_list').addClass('hidespeedcaminfo');
+		}
+	});
+	
+	$('#elements_filter_showgibdd').change(function(){
+		if($(this).is(":checked")) {
+			$('#elements_list').removeClass('hidegibdd');
+		} else {
+			$('#elements_list').addClass('hidegibdd');
+		}
+	});
+	
+	$('.leaflet-container').css('cursor','crosshair');
+
+
+//afterSetup
+	changeQuadrs();
+	loadMarkers();
+	
+	setInterval(function(){ loadMarkers(true); }, 1000);
+	setInterval(function(){ loadMarkers(false); }, 30000);
+
+//functions
+
+	function overpassRequest() {
+		if (ovepassLoading) {
+			return
+		}
+		ovepassLoading = true
 		jQuery('.overpass-button').addClass('overpass-loading');
+		bounds = mymap.getBounds()
 		$.ajax({
 			url:
-				'https://speedcammapping.lisss.website/overpass.php?quadr='+quadr,
+				'https://speedcammapping.lisss.website/overpass.php?bbox='+bounds._southWest.lat+','+bounds._southWest.lng+','+bounds._northEast.lat+','+bounds._northEast.lng,
 			dataType: 'json',
 			type: 'GET',
 			contentType: "application/json",
@@ -337,43 +422,54 @@ function overpassRequestNew() {
 			userError('Error loading from http://overpass-api.de/ Try again later.')
 			debug(error);
 		}).always(function() {
-			ovepassLoading = ovepassLoading-1
-			if (ovepassLoading < 1) {
-				ovepassLoading = false
-				jQuery('.overpass-button').removeClass('overpass-loading');
-			}
+			ovepassLoading = false
+			jQuery('.overpass-button').removeClass('overpass-loading');
 		});
 	}
-}
+
+	function overpassRequestNew() {
+		if (ovepassLoading) {
+			return
+		}
+		
+		for (var quadr in rsMarkers) {
+			ovepassLoading = ovepassLoading+1
+			jQuery('.overpass-button').addClass('overpass-loading');
+			$.ajax({
+				url:
+					'https://speedcammapping.lisss.website/overpass.php?quadr='+quadr,
+				dataType: 'json',
+				type: 'GET',
+				contentType: "application/json",
+				async: true,
+				crossDomain: true
+			}).done(function(e) {
+				overpassLoad(e.elements);
+			}).fail(function(error) {
+				userError('Error loading from http://overpass-api.de/ Try again later.')
+				debug(error);
+			}).always(function() {
+				ovepassLoading = ovepassLoading-1
+				if (ovepassLoading < 1) {
+					ovepassLoading = false
+					jQuery('.overpass-button').removeClass('overpass-loading');
+				}
+			});
+		}
+	}
 
 	function overpassPopup(el) {
 		text = ''
 		text = text+'<a target=_blank href="https://www.openstreetmap.org/'+el.type+'/'+el.id+'">'+el.id+'</a> <div lat="'+el.lat+'" lng="'+el.lon+'" osm='+el.type+el.id+' class="josm_edit" onclick="josmedit(this)"></div><br />'
 		for (tag in el.tags) {
-			text = text+'<span  style="display: block"><b>'+tag+'</b>: '+(is_url(el.tags[tag]) ? '<a target=_blank href="'+el.tags[tag]+'">'+el.tags[tag]+'</a>' : el.tags[tag])+'</span>'
+			text = text+'<span  style="display: block"><b>'+tag+'</b>: '+urlString(el.tags[tag],' ')+'</span>'
 		}
 		return text
 	}
 
-var greenIcon = new L.Icon({
-  iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
 
-var redIcon = new L.Icon({
-  iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
 
-	function overpassLoad(els) {
+	function overpassLoadOld(els) {
 		needline=true;
 		maxdistance=30;
 		rsLayers['overpass'].clearLayers();
@@ -448,7 +544,67 @@ var redIcon = new L.Icon({
 		}
 	};
 	
-	rsDebug=false
+	function overpassLoad(els) {
+		needline=true;
+		maxdistance=30;
+		rsLayers['overpass'].clearLayers();
+		for (item in els) {
+			if (els[item].tags == undefined) {
+				continue;
+			};
+			if (els[item].type == 'relation') {
+				continue;
+			};
+			var to = L.latLng(els[item].lat, els[item].lon);
+			var check=1;
+			var sources = false
+			var icon = redIcon
+			if (els[item].tags.source) {
+				sources = els[item].tags.source.split(';')
+			}
+			for (quadr in rsMarkers) {
+				quadrloop:
+				for (marker in rsMarkers[quadr]) {
+					markerloop:
+					if (rsMarkers[quadr][marker].feature) {
+						if (rsMarkers[quadr][marker].feature.properties.type == 'cam') {
+							needcheck=false
+							from = rsMarkers[quadr][marker]._latlng
+							
+							if (sources) {
+								if (sources.includes(rsMarkers[quadr][marker].feature.properties.source)) {
+									needcheck=true
+								}
+							}
+							//needcheck=true; needline=false; maxdistance=50; //this is for not check source, distance only
+							
+							if (needcheck) {
+								if (needline) {
+									rsLayers['overpass'].addLayer(L.polyline([from,to]))
+									icon = greenIcon
+								}
+							}
+							
+							if (from.distanceTo(to)<maxdistance) {
+								rsMarkers[quadr][marker].setIcon(rsIcons['dcam']);
+								//mymap.removeLayer(rsMarkers[quadr][marker]);
+								$('#element_'+quadr+marker).addClass('marked');
+								$('#element_'+quadr+marker+' .element_osm').addClass('osm_'+els[item].type);
+								$('#element_'+quadr+marker+' .element_osm').click(function() { openurl('https://openstreetmap.org/'+els[item].type+'/'+els[item].id); });
+								$('#element_'+quadr+marker+' .josm_edit').attr('osm',els[item].type+els[item].id);
+								//check=0;
+								//break markerloop;
+							}
+						}
+					}
+				}
+			}
+			if (check==1) {
+				rsLayers['overpass'].addLayer(L.marker([els[item].lat, els[item].lon], {icon: icon}).bindPopup(overpassPopup(els[item])))
+				//L.marker([els[item].lat, els[item].lon]).addTo(mymap);
+			}
+		}
+	};
 
 	function josmedit(e) {
 		lat=1*e.attributes['lat'].value
@@ -512,6 +668,20 @@ var redIcon = new L.Icon({
 		
 		rstr='';
 		
+		vals.forEach(function(e) {
+			result = e.match(/^speed:(\d+)$/i)
+			if (result) {
+				rstr = rstr+'Скорость '+result[1]+'км/ч '
+			}
+		})
+		
+		vals.forEach(function(e) {
+			result = e.match(/^direction:(\d+)$/i)
+			if (result) {
+				rstr = rstr+'Направление '+result[1]+'град. '
+			}
+		})
+		
 		if ( (vals.includes('centerlane')) && (vals.includes('rightlane')) && (vals.includes('leftlane')) ) {
 			rstr = rstr+'во всех полосах ';
 		} else if ( (vals.includes('centerlane')) || (vals.includes('rightlane')) || (vals.includes('leftlane')) ) {
@@ -548,14 +718,10 @@ var redIcon = new L.Icon({
 		return rstr;
 	}
 
-	typesObjLang = {
-		'accident': 'ДТП',
-		'cam': 'Камера',
-		'maintenance': 'Дорожные работы',
-		'block': 'Движение заблокировано',
-		'message': 'Сообщение',
-		'sos': 'Просьба о помощи',
-		'other': 'Иное',
+	function cam_DirectionOnMap(latlng,dir) {
+		var boundary = { "type": "Feature", "geometry": {"type":"Polygon","coordinates":[....]}};
+		var poly = L.geoJson(boundary);
+		return poly
 	}
 
 	function parseTypesObj(str) {
@@ -618,60 +784,26 @@ var redIcon = new L.Icon({
 		mymap.closePopup();
 	    }
 	}
-
-	//mymap.on('click', onMapClick);
-
-	var rsLoads = 0
-	var rsIcons = new Object();
-	var rsMarkers = new Object();
-	enableLoading = false
-
-	var rsIcon = L.Icon.extend({
-		options: {
-			shadowUrl: 'src/img/medium/marker-red.png',
-			iconSize:     [14, 14],
-			shadowSize:   [20, 20],
-			iconAnchor:   [18, 18],
-			shadowAnchor: [20, 20],
-			popupAnchor:  [-14, -14]
-		}
-	});
-
-	L.icon = function (options) {
-		return new L.Icon(options);
-	};
-
-	rsIcons['other'] = new rsIcon({iconUrl: 'src/img/small/other.png'});
-	rsIcons['cam'] = new rsIcon({iconUrl: 'src/img/small/cam.png'});
-	rsIcons['dcam'] = new rsIcon({iconUrl: 'src/img/small/dcam.png'});
-	rsIcons['maintenance'] = new rsIcon({iconUrl: 'src/img/small/maintenance.png'});
-	rsIcons['accident'] = new rsIcon({iconUrl: 'src/img/small/accident.png'});
-	rsIcons['block'] = new rsIcon({iconUrl: 'src/img/small/block.png'});
-	rsIcons['sos'] = new rsIcon({iconUrl: 'src/img/small/sos.png'});
 	
-	rsIcons['message'] = L.icon(
-		{
-			iconUrl: 'src/img/small/message.png',
-			iconSize:     [14, 14], // size of the icon
-//			shadowSize:   [50, 64], // size of the shadow
-			iconAnchor:   [10, 14], // point of the icon which will correspond to marker's location
-//			shadowAnchor: [4, 62],  // the same for the shadow
-			popupAnchor:  [0, -7] // point from which the popup should open relative to the iconAnchor
+	function is_url(str) {
+		regexp =  /^(?:(?:https?|ftp):\/\/)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:\/\S*)?$/;
+		if (regexp.test(str)) {
+			return true
 		}
-	);
-
+		return false
+	}
 	
-	function is_url(str)
-	{
-	  regexp =  /^(?:(?:https?|ftp):\/\/)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:\/\S*)?$/;
-			if (regexp.test(str))
-			{
-			  return true;
+	function urlString(str,delim) {
+		rstr=''
+		strs = str.split(';')
+		strs.forEach(function(e) {
+			if (is_url(e)) {
+				rstr=rstr+delim+'<a target=_blank href="'+e+'">'+e+'</a>'
+			} else {
+				rstr=rstr+delim+e
 			}
-			else
-			{
-			  return false;
-			}
+		})
+		return rstr;
 	}
 	
 	function confirmObject(index, id, val) {
@@ -758,12 +890,7 @@ var redIcon = new L.Icon({
 			var rsNewMarkers = []
 			data.items.forEach(function(item) {
 				if (typeof(rsMarkers[quadr][item._index+item._id]) == 'undefined') {
-					link=item._source.source
-					if (is_url(link)) {
-						link="<a target=_blank href='"+link+"'>"+link+"</a>"
-					} else if (typeof(link) == 'undefined') {
-						link=false
-					}
+					link=urlString(item._source.source,' ')
 					addition = parseTypesObj(item._source.type)+' '+parseAdditions(item._source.addition)
 					popupText="<img style='max-width: 25px;' src='src/img/medium/"+item._source.type+".png'> "+ParseData(item._source.time)+" <br />"+addition +" <p><b>"+item._source.text+"</b></p> <div lat='"+item._source.location.lat+"' lng='"+item._source.location.lon+"' class='josm_edit' onclick='josmedit(this)'></div> <div style='text-align:right'>"+link+"</div>"
 					newMarker = L.marker([item._source.location.lat, item._source.location.lon],{icon: rsIcons[item._source.type]}).bindPopup(popupText).on('popupopen', objectPopup)
@@ -893,21 +1020,7 @@ var redIcon = new L.Icon({
 		Cookies.set('mapCenter', mymap._lastCenter.lat+', '+mymap._lastCenter.lng+', '+mymap._zoom);
 	}
 	
-	$('.leaflet-container').css('cursor','crosshair');
-	mymap.on('moveend', changeQuadrs);
-	mymap.on('dragend', function() {
-		saveMapPosition()
-		changeMap()
-	});
-	mymap.on('zoomend', function() {
-		saveMapPosition() 
-		changeMap()
-	});
-	changeQuadrs();
-	loadMarkers();
-	
-	setInterval(function(){ loadMarkers(true); }, 2000);
-	setInterval(function(){ loadMarkers(false); }, 30000);
+
 	
 	$( function() {
 

@@ -223,11 +223,18 @@ div.message.error {
 	});
 	
 	rsLayers['overpass'] = L.layerGroup().addTo(mymap)
-	rsLayers['cam'] = L.layerGroup().addTo(mymap)
+	rsLayers['speedcammapping_gibdd'] = L.layerGroup()
+	rsLayers['speedcammapping_speedcamonline'] = L.layerGroup()
+	rsLayers['links_speedcammapping_gibdd'] = L.layerGroup()
+	rsLayers['links_speedcammapping_speedcamonline'] = L.layerGroup()
+
+	var speedcamonline_maps = L.layerGroup([rsLayers['speedcammapping_speedcamonline'], rsLayers['links_speedcammapping_speedcamonline']]).addTo(mymap);
+	var gibdd_maps = L.layerGroup([rsLayers['speedcammapping_gibdd'], rsLayers['links_speedcammapping_gibdd']]).addTo(mymap);
 
 	var overlayMaps = {
 		"Overpass": rsLayers['overpass'],
-		"Камеры": rsLayers['cam']
+		"Камеры ГИБДД": gibdd_maps,
+		"Камеры speedcamonline": speedcamonline_maps,
 	};
 
 	var baseMap = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
@@ -580,7 +587,7 @@ div.message.error {
 							
 							if (needcheck) {
 								if (needline) {
-									rsLayers['overpass'].addLayer(L.polyline([from,to]))
+									rsLayers['links_'+rsMarkers[quadr][marker].feature.properties.index].addLayer(L.polyline([from,to]))
 									icon = greenIcon
 								}
 							}
@@ -846,7 +853,7 @@ div.message.error {
 				if (inMap(marker._latlng.lat, marker._latlng.lng)) {
 
 					if ($('#element_'+quadr+element).length < 1) {
-						rsLayers[marker.feature.properties.type].addLayer(marker);
+						rsLayers[marker.feature.properties.index].addLayer(marker);
 						span_class="fromspeedcaminfo"
 						switch(marker.feature.properties.index) {
 							case 'speedcammapping_speedcamonline': span_class="fromspeedcaminfo"; break;

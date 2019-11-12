@@ -52,12 +52,23 @@ foreach ($files as $file) {
 		$lng=1*trim($cam[1]);
 		$lat=1*trim($cam[2]);
 	        $speed=1*trim($cam[4]);
-		$direction=1*trim($cam[5]);
+	        $lanes=1*trim($cam[5]);
+		$direction=1*trim($cam[6]);
+		$addition=null;
 		$text="";
-		if ( ($speed>0) and ($direction>0) ) {
-		    $text="Speed: ".$speed." ".($direction==1?"one way":"in both direction");
+		if ($speed>0){
+		    $text="Speed: ".$speed;
 		};
-		update_object_int($fullid,$lng,$lat,"cam",$text,null,"http://speedcamonline.ru/point/$file/$id",$index);
+		if ($direction>0) {
+		    $addition=($addition?$addition:"")."direction:".$direction.";";
+		};
+		if ($speed>0) {
+		    $addition=($addition?$addition:"")."speed:".$speed.";";
+		};
+		if ($lanes>0) {
+		    $addition=($addition?$addition:"")."lanes:".$lanes.";";
+		};
+		update_object_int($fullid,$lng,$lat,"cam",$text,$addition,"http://speedcamonline.ru/point/$file/$id",$index);
 		$ids[]=$fullid;
 	    }
 	};

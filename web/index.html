@@ -307,16 +307,9 @@ div.message.error {
 	mymap.addControl(new downloadControl());
 	
 //setupIcons
-	var greenIcon = new L.Icon({
-	  iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
-	  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-	  iconSize: [25, 41],
-	  iconAnchor: [12, 41],
-	  popupAnchor: [1, -34],
-	  shadowSize: [41, 41]
-	});
+	overpassIcons = new Array
 
-	var redIcon = new L.Icon({
+	overpassIcons[0] = new L.Icon({
 	  iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
 	  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
 	  iconSize: [25, 41],
@@ -324,6 +317,25 @@ div.message.error {
 	  popupAnchor: [1, -34],
 	  shadowSize: [41, 41]
 	});
+	
+	overpassIcons[1] = new L.Icon({
+	  iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png',
+	  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+	  iconSize: [25, 41],
+	  iconAnchor: [12, 41],
+	  popupAnchor: [1, -34],
+	  shadowSize: [41, 41]
+	});
+	
+	overpassIcons[2] = new L.Icon({
+	  iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+	  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+	  iconSize: [25, 41],
+	  iconAnchor: [12, 41],
+	  popupAnchor: [1, -34],
+	  shadowSize: [41, 41]
+	});
+	
 	var rsIcon = L.Icon.extend({
 		options: {
 			shadowUrl: 'src/img/medium/marker-red.png',
@@ -552,7 +564,6 @@ div.message.error {
 	};
 	
 	function overpassLoad(els) {
-		needline=true;
 		maxdistance=30;
 		rsLayers['overpass'].clearLayers();
 		for (item in els) {
@@ -565,7 +576,7 @@ div.message.error {
 			var to = L.latLng(els[item].lat, els[item].lon);
 			var check=1;
 			var sources = false
-			var icon = redIcon
+			var icon = 0
 			if (els[item].tags.source) {
 				sources = els[item].tags.source.split(';')
 			}
@@ -576,39 +587,40 @@ div.message.error {
 					if (rsMarkers[quadr][marker].feature) {
 						if (rsMarkers[quadr][marker].feature.properties.type == 'cam') {
 							needcheck=false
+							needline=false
 							from = rsMarkers[quadr][marker]._latlng
+							
+							if (from.distanceTo(to)<maxdistance) {
+								icon = Math.max(icon,1)
+								needcheck=true
+							}
 							
 							if (sources) {
 								if (sources.includes(rsMarkers[quadr][marker].feature.properties.source)) {
-									needcheck=true
+									needline=true
+									icon = 2
 								}
 							}
-							//needcheck=true; needline=false; maxdistance=50; //this is for not check source, distance only
+							
+							if (needline) {
+								rsLayers['links_'+rsMarkers[quadr][marker].feature.properties.index].addLayer(L.polyline([from,to]))
+							}
 							
 							if (needcheck) {
-								if (needline) {
-									rsLayers['links_'+rsMarkers[quadr][marker].feature.properties.index].addLayer(L.polyline([from,to]))
-									icon = greenIcon
-								}
-							}
-							
-							if (from.distanceTo(to)<maxdistance) {
 								rsMarkers[quadr][marker].setIcon(rsIcons['dcam']);
-								//mymap.removeLayer(rsMarkers[quadr][marker]);
 								$('#element_'+quadr+marker).addClass('marked');
 								$('#element_'+quadr+marker+' .element_osm').addClass('osm_'+els[item].type);
 								$('#element_'+quadr+marker+' .element_osm').click(function() { openurl('https://openstreetmap.org/'+els[item].type+'/'+els[item].id); });
 								$('#element_'+quadr+marker+' .josm_edit').attr('osm',els[item].type+els[item].id);
-								//check=0;
-								//break markerloop;
 							}
+							
+
 						}
 					}
 				}
 			}
 			if (check==1) {
-				rsLayers['overpass'].addLayer(L.marker([els[item].lat, els[item].lon], {icon: icon}).bindPopup(overpassPopup(els[item])))
-				//L.marker([els[item].lat, els[item].lon]).addTo(mymap);
+				rsLayers['overpass'].addLayer(L.marker([els[item].lat, els[item].lon], {icon: overpassIcons[icon]}).bindPopup(overpassPopup(els[item])))
 			}
 		}
 	};

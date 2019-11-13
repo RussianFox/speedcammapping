@@ -486,86 +486,11 @@ div.message.error {
 		return text
 	}
 
-
-
-	function overpassLoadOld(els) {
-		needline=true;
-		maxdistance=30;
-		rsLayers['overpass'].clearLayers();
-		for (item in els) {
-			if (els[item].tags == undefined) {
-				continue;
-			};
-			if (els[item].type == 'relation') {
-				continue;
-			};
-			var to = L.latLng(els[item].lat, els[item].lon);
-			var check=1;
-			var source1 = false
-			var source2 = false
-			var icon = greenIcon
-			if (els[item].tags.source) {
-				source1 = els[item].tags.source
-				mm = source1.split(';')
-				if (mm.length > 1) {
-					source1 = mm[0]
-					source2 = mm[1]
-				}
-			}
-			if (els[item].tags.source2) {
-				source2 = els[item].tags.source2
-			}
-			for (quadr in rsMarkers) {
-				quadrloop:
-				for (marker in rsMarkers[quadr]) {
-					markerloop:
-					if (rsMarkers[quadr][marker].feature) {
-						if (rsMarkers[quadr][marker].feature.properties.type == 'cam') {
-							needcheck=false
-							if (source1) {
-								if (rsMarkers[quadr][marker].feature.properties.source == source1) {
-									needcheck=true
-								}
-							}
-							if (source2) {
-								if (rsMarkers[quadr][marker].feature.properties.source == source2) {
-									needcheck=true
-								}
-							}
-							needcheck=true; needline=false; maxdistance=50; //this is for not check source, distance only
-							if (needcheck) {
-								from = rsMarkers[quadr][marker]._latlng
-								if (from.distanceTo(to)<maxdistance) {
-									rsMarkers[quadr][marker].setIcon(rsIcons['dcam']);
-									mymap.removeLayer(rsMarkers[quadr][marker]);
-									$('#element_'+quadr+marker).addClass('marked');
-									$('#element_'+quadr+marker+' .element_osm').addClass('osm_'+els[item].type);
-									$('#element_'+quadr+marker+' .element_osm').click(function() { openurl('https://openstreetmap.org/'+els[item].type+'/'+els[item].id); });
-									$('#element_'+quadr+marker+' .josm_edit').attr('osm',els[item].type+els[item].id);
-									check=0;
-									break markerloop;
-								} else {
-									//добавить линию
-									if (needline) {
-										rsLayers['overpass'].addLayer(L.polyline([from,to]))
-										icon = redIcon
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			if (check==1) {
-				rsLayers['overpass'].addLayer(L.marker([els[item].lat, els[item].lon], {icon: icon}).bindPopup(overpassPopup(els[item])))
-				//L.marker([els[item].lat, els[item].lon]).addTo(mymap);
-			}
-		}
-	};
-	
 	function overpassLoad(els) {
 		maxdistance=30;
 		rsLayers['overpass'].clearLayers();
+		rsLayers['links_speedcammapping_speedcamonline'].clearLayers();
+		rsLayers['links_speedcammapping_gibdd'].clearLayers();
 		for (item in els) {
 			if (els[item].tags == undefined) {
 				continue;

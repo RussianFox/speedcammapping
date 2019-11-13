@@ -498,6 +498,9 @@ div.message.error {
 			if (els[item].type == 'relation') {
 				continue;
 			};
+			if (els[item].type == 'way') {
+				continue;
+			};
 			var to = L.latLng(els[item].lat, els[item].lon);
 			var check=1;
 			var sources = false

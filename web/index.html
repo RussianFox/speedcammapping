@@ -189,7 +189,7 @@ div.message.error {
 </div></div></div>
 <script>
 
-	var rsDebug=false
+	var rsDebug=true
 
 	var rsLayers = new Object
 	var rsMarkers = new Object
@@ -818,6 +818,7 @@ div.message.error {
 			return false;
 		}
 		rsLoads = rsLoads+1
+		debug(rsLoads+' (+)')
 		jQuery('.download-control').addClass('download-now');
 		if (rsMarkers[quadr] == undefined) {
 			rsMarkers[quadr] = new Object
@@ -857,9 +858,10 @@ div.message.error {
 			})
 		}).always(function() {
 			rsLoads = Math.max(0,rsLoads-1)
-			if (rsLoads == 0) {
+			if ((rsLoads == 0) && (Object.keys(rsLoadQuadrs).length == 0)) {
 				jQuery('.download-control').removeClass('download-now');
 			}
+			debug(rsLoads+' (-)')
 		});
 	}
 	
@@ -889,11 +891,13 @@ div.message.error {
 		}
 		debug('Start loading...')
 		if (onlyNew) {
+			debug('Start loading new...')
 			loadingLayers = []
 			for (var prop in rsLoadQuadrs) {
 				loadingLayers.push(prop);
 			}
 		} else {
+			debug('Start loading all...')
 			loadingLayers = Object.keys(rsMarkers).concat(Object.keys(rsLoadQuadrs))
 		}
 		loadingLayers.forEach(function(element) {

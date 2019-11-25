@@ -189,7 +189,7 @@ div.message.error {
 </div></div></div>
 <script>
 
-	var rsDebug=true
+	var rsDebug=false
 
 	var rsLayers = new Object
 	var rsMarkers = new Object
@@ -858,8 +858,11 @@ div.message.error {
 			})
 		}).always(function() {
 			rsLoads = Math.max(0,rsLoads-1)
-			if ((rsLoads == 0) && (Object.keys(rsLoadQuadrs).length == 0)) {
+			if (rsLoads == 0) {
 				jQuery('.download-control').removeClass('download-now');
+				if (Object.keys(rsLoadQuadrs).length > 0) {
+					loadMarkers(true);
+				}
 			}
 			debug(rsLoads+' (-)')
 		});

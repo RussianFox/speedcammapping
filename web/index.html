@@ -518,6 +518,8 @@ div.message.error {
 		for (tag in el.tags) {
 			text = text+'<span  style="display: block"><b>'+tag+'</b>: '+urlString(el.tags[tag],' ')+'</span>'
 		}
+		var date = new Date(el.timestamp)
+		text = text+'<span  style="display: block"><b>Last edit</b>: '+date.toLocaleString("ru", { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', timezone: 'UTC', hour: 'numeric', minute: 'numeric', second: 'numeric'})+' by <a target=_blank href="https://www.openstreetmap.org/user/'+el.user+'">'+el.user+'</a></span>'
 		return text
 	}
 
@@ -527,6 +529,30 @@ div.message.error {
 		rsLayers['overpass_hide'].clearLayers();
 		rsLayers['links_speedcammapping_speedcamonline'].clearLayers();
 		rsLayers['links_speedcammapping_gibdd'].clearLayers();
+		for (item in els) {
+			if (els[item].type == 'relation') {
+				tags = els[item].tags
+				for (mem in els[item].members) {
+					for (sitem in els) {
+						if ( (els[sitem].id == els[item].members[mem].ref) && (els[sitem].type == els[item].members[mem].type) ) {
+							els[sitem].role
+							//добавляем точке все теги
+							//console.log(els[sitem].id+' in relation '+els[item].id)
+							if(els[sitem].tags == undefined) {
+								els[sitem].tags = tags;
+							} else {
+								for (var k in tags) {
+									if (tags.hasOwnProperty(k)) {
+									   els[sitem].tags[k] = tags[k];
+									}
+								}
+							}
+							els[sitem].tags.role=els[item].members[mem].role
+						}
+					}
+				}
+			}
+		}
 		for (item in els) {
 			if (els[item].tags == undefined) {
 				continue;

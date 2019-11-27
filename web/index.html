@@ -223,6 +223,7 @@ div.message.error {
 	});
 	
 	rsLayers['overpass'] = L.layerGroup().addTo(mymap)
+	rsLayers['overpass_hide'] = L.layerGroup().addTo(mymap)
 	rsLayers['speedcammapping_gibdd'] = L.layerGroup()
 	rsLayers['speedcammapping_speedcamonline'] = L.layerGroup()
 	rsLayers['links_speedcammapping_gibdd'] = L.layerGroup()
@@ -230,9 +231,10 @@ div.message.error {
 
 	var speedcamonline_maps = L.layerGroup([rsLayers['speedcammapping_speedcamonline'], rsLayers['links_speedcammapping_speedcamonline']]).addTo(mymap);
 	var gibdd_maps = L.layerGroup([rsLayers['speedcammapping_gibdd'], rsLayers['links_speedcammapping_gibdd']]).addTo(mymap);
-
+	var overpass_maps = L.layerGroup([rsLayers['overpass'], rsLayers['overpass_hide']]).addTo(mymap);
+	
 	var overlayMaps = {
-		"Overpass": rsLayers['overpass'],
+		"Overpass": overpass_maps,
 		"Камеры ГИБДД": gibdd_maps,
 		"Камеры speedcamonline": speedcamonline_maps,
 	};
@@ -387,8 +389,38 @@ div.message.error {
 	$('#elements_filter_hidemarked').change(function(){
 		if($(this).is(":checked")) {
 			$('#elements_list').addClass('hidemarked');
+			//спрятать маркеры
+			overpass_maps.removeLayer(rsLayers['overpass_hide'])
+			for(var quadr in rsMarkers) {
+				for(var element in rsMarkers[quadr]) {
+					if (rsMarkers[quadr][element].feature.properties.needhide) {
+						mymap.removeLayer(rsMarkers[quadr][element])
+					}
+				}
+			}
+			//спрятать линии
+			Object.keys(rsLayers).forEach(function (item) {
+				if (item.startsWith("links_")) {
+					mymap.removeLayer(rsLayers[item])
+				}
+			});
 		} else {
 			$('#elements_list').removeClass('hidemarked');
+			//показать маркеры
+			overpass_maps.addLayer(rsLayers['overpass_hide'])
+			for(var quadr in rsMarkers) {
+				for(var element in rsMarkers[quadr]) {
+					if (rsMarkers[quadr][element].feature.properties.needhide) {
+						mymap.addLayer(rsMarkers[quadr][element])
+					}
+				}
+			}
+			//показать линии
+			Object.keys(rsLayers).forEach(function (item) {
+				if (item.startsWith("links_")) {
+					mymap.addLayer(rsLayers[item])
+				}
+			});
 		}
 	});
 
@@ -426,6 +458,9 @@ div.message.error {
 		}
 		ovepassLoading = true
 		jQuery('.overpass-button').addClass('overpass-loading');
+		if ($('#elements_filter_hidemarked')[0].checked) {
+			$('#elements_filter_hidemarked').trigger('click');
+		}
 		bounds = mymap.getBounds()
 		$.ajax({
 			url:
@@ -489,6 +524,7 @@ div.message.error {
 	function overpassLoad(els) {
 		maxdistance=30;
 		rsLayers['overpass'].clearLayers();
+		rsLayers['overpass_hide'].clearLayers();
 		rsLayers['links_speedcammapping_speedcamonline'].clearLayers();
 		rsLayers['links_speedcammapping_gibdd'].clearLayers();
 		for (item in els) {
@@ -508,6 +544,7 @@ div.message.error {
 			if (els[item].tags.source) {
 				sources = els[item].tags.source.split(';')
 			}
+			needhide=false
 			for (quadr in rsMarkers) {
 				quadrloop:
 				for (marker in rsMarkers[quadr]) {
@@ -534,21 +571,25 @@ div.message.error {
 								rsLayers['links_'+rsMarkers[quadr][marker].feature.properties.index].addLayer(L.polyline([from,to]))
 							}
 							
-							if (needcheck) {
+							if ( (needcheck) || (needline) ) {
 								rsMarkers[quadr][marker].setIcon(rsIcons['dcam']);
+								rsMarkers[quadr][marker].feature.properties.needhide=true
 								$('#element_'+quadr+marker).addClass('marked');
 								$('#element_'+quadr+marker+' .element_osm').addClass('osm_'+els[item].type);
 								$('#element_'+quadr+marker+' .element_osm').click(function() { openurl('https://openstreetmap.org/'+els[item].type+'/'+els[item].id); });
 								$('#element_'+quadr+marker+' .josm_edit').attr('osm',els[item].type+els[item].id);
 							}
 							
+							if (icon > 0) {
+								needhide=true
+							}
 
 						}
 					}
 				}
 			}
 			if (check==1) {
-				rsLayers['overpass'].addLayer(L.marker([els[item].lat, els[item].lon], {icon: overpassIcons[icon]}).bindPopup(overpassPopup(els[item])))
+				rsLayers['overpass'+(needhide?'_hide':'')].addLayer(L.marker([els[item].lat, els[item].lon], {icon: overpassIcons[icon], options: { needhide: needhide }}).bindPopup(overpassPopup(els[item])))
 			}
 		}
 	};
@@ -916,6 +957,11 @@ div.message.error {
 	}
 	
 	function changeQuadrs(e) {
+	
+		if ($('#elements_filter_hidemarked')[0].checked) {
+			$('#elements_filter_hidemarked').trigger('click');
+		}
+	
 		var bounds = mymap.getBounds();
 		bounds._northEast.lat;
 		bounds._northEast.lon;

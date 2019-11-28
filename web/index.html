@@ -186,6 +186,9 @@ div.message.error {
 <label for="elements_filter_hidemarked">Show from speedcaminfo</label>
 <input type="checkbox" id="elements_filter_showgibdd" checked>
 <label for="elements_filter_hidemarked">Show from gibdd</label>
+<input type="checkbox" id="elements_filter_showgibdd" checked>
+<label for="elements_filter_hidemarked">Show from gibdd</label>
+<button onClick=copyToClipboardLinks()>Copy links</button>
 </div></div></div>
 <script>
 
@@ -523,6 +526,24 @@ div.message.error {
 		return text
 	}
 
+	function modurl(urls) {
+		url = urls
+		//http->https
+		url = url.replace(/^https/g, "http");
+		//удаляем www
+		url = url.replace(/:\/\/www\./g, "://");
+		return url
+	}
+
+	function comp_sources(src,srcs) {
+		for (sr in srcs) {
+			if (modurl(src) == modurl(srcs[sr])) {
+				return true
+			}
+		}
+		return false
+	}
+
 	function overpassLoad(els) {
 		maxdistance=30;
 		rsLayers['overpass'].clearLayers();
@@ -565,10 +586,13 @@ div.message.error {
 			};
 			var to = L.latLng(els[item].lat, els[item].lon);
 			var check=1;
-			var sources = false
+			var sources = []
 			var icon = 0
 			if (els[item].tags.source) {
-				sources = els[item].tags.source.split(';')
+				sources = sources.concat(els[item].tags.source.split(';'))
+			}
+			if (els[item].tags.ref) {
+				sources = sources.concat(els[item].tags.ref.split(';'))
 			}
 			needhide=false
 			for (quadr in rsMarkers) {
@@ -587,7 +611,8 @@ div.message.error {
 							}
 							
 							if (sources) {
-								if (sources.includes(rsMarkers[quadr][marker].feature.properties.source)) {
+								//if (sources.includes(rsMarkers[quadr][marker].feature.properties.source)) {
+								if (comp_sources(rsMarkers[quadr][marker].feature.properties.source,sources)) {
 									needline=true
 									icon = 2
 								}
@@ -812,7 +837,7 @@ div.message.error {
 		strs = str.split(';')
 		strs.forEach(function(e) {
 			if (is_url(e)) {
-				rstr=rstr+delim+'<a target=_blank href="'+e+'">'+e+'</a>'
+				rstr=rstr+delim+'<a class=source_link target=_blank href="'+e+'">'+e+'</a>'
 			} else {
 				rstr=rstr+delim+e
 			}
@@ -1040,6 +1065,18 @@ div.message.error {
 		
 		debug(Object.keys(rsMarkers))
 		
+	}
+	
+	function copyToClipboardLinks() {
+	  var $temp = $("<input>");
+	  $("body").append($temp);
+	  links = []
+	  $('.source_link').each(function(l,ln){
+		links.push(ln.innerText)
+	  })
+	  $temp.val(links.join(';')).select();
+	  document.execCommand("copy");
+	  $temp.remove();
 	}
 	
 	function saveMapPosition() {

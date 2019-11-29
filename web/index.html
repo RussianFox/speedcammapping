@@ -149,6 +149,30 @@ div.message.error {
     text-align:center;
 }
 
+.posistion-back {
+	background-color: white;
+}
+.posistion-back-button {
+	cursor: pointer;
+	display:inline-block;
+	width: 30px;
+	height: 30px;
+	background-size: contain;
+	margin:1px;
+}
+.posistion-back-button:active:hover {
+	background-color: #777777a8;
+}
+
+.posistion-back-record {
+	background-image: url('src/img/medium/record-button.png');
+}
+.posistion-back-play {
+	background-image: url('src/img/medium/play-button.png');
+}
+
+
+
 .overpass-button {
 	width: 30px;
 	height: 30px;
@@ -308,8 +332,47 @@ div.message.error {
 	 
 	});
 
+	var posistionBack = L.Control.extend({
+	  options: {
+		position: 'topright' 
+	  },
+	 
+	  onAdd: function (map) {
+		var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom posistion-back');
+		var buttonrecord = L.DomUtil.create('div', 'posistion-back-button posistion-back-record',container);
+		var buttonplay = L.DomUtil.create('div', 'posistion-back-button posistion-back-play',container);
+
+
+        L.DomEvent
+            .addListener(buttonplay, 'click', L.DomEvent.stopPropagation)
+            .addListener(buttonplay, 'click', L.DomEvent.preventDefault)
+			.addListener(buttonplay, 'click', function (e) { 
+				savePos = this.parentElement.children[0].attributes.position.value.split(',')
+				map.setView([Number(savePos[0]),Number(savePos[1])], Number(savePos[2]))
+			});
+
+        L.DomEvent
+            .addListener(buttonrecord, 'click', L.DomEvent.stopPropagation)
+            .addListener(buttonrecord, 'click', L.DomEvent.preventDefault)
+			.addListener(buttonrecord, 'click', function (e) { 
+				this.setAttribute( 'position', map.getCenter().lat+', '+map.getCenter().lng+', '+map.getZoom() ) 
+			});
+
+		container.onmouseleave = function(e){
+		  e.stopPropagation();
+		}
+		container.onmouseout = function(e){
+		  e.stopPropagation();
+		}
+		return container;
+	  }
+	 
+	});
+
 	mymap.addControl(new overpassControl());
+	mymap.addControl(new posistionBack());
 	mymap.addControl(new downloadControl());
+
 	
 //setupIcons
 	overpassIcons = new Array
@@ -659,6 +722,10 @@ div.message.error {
 		url='http://127.0.0.1:8111/load_and_zoom?left='+cleft+'&top='+ctop+'&right='+cright+'&bottom='+cbottom
 		if (osm) {
 			url = url+'&select='+osm
+		}
+		if (mymap.getZoom()>14) {
+			$('.posistion-back .posistion-back-record').trigger( "click" );
+			userMessage('Previous position saved')
 		}
 		mymap.fitBounds([[ctop,cleft], [cbottom,cright]]);
 		$.get(url)

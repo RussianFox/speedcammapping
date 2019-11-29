@@ -723,7 +723,7 @@ div.message.error {
 		if (osm) {
 			url = url+'&select='+osm
 		}
-		if (mymap.getZoom()>14) {
+		if (mymap.getZoom()<15) {
 			$('.posistion-back .posistion-back-record').trigger( "click" );
 			userMessage('Previous position saved')
 		}

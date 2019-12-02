@@ -1138,7 +1138,7 @@ div.message.error {
 	  var $temp = $("<input>");
 	  $("body").append($temp);
 	  links = []
-	  $('.source_link').each(function(l,ln){
+	  $('#elements_list .source_link').each(function(l,ln){
 		links.push(ln.innerText)
 	  })
 	  $temp.val(links.join(';')).select();

@@ -14,6 +14,7 @@
 	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
 	
 	<script src="https://cdn.jsdelivr.net/npm/js-cookie@beta/dist/js.cookie.min.js"></script>
+	<script src="src/leaflet.geometryutil.js"></script>
 	
 <style>
 html {
@@ -262,8 +263,8 @@ div.message.error {
 	
 	var overlayMaps = {
 		"Overpass": overpass_maps,
-		"Камеры ГИБДД": gibdd_maps,
-		"Камеры speedcamonline": speedcamonline_maps,
+		"Cameras ГИБДД": gibdd_maps,
+		"Cameras speedcamonline": speedcamonline_maps,
 	};
 
 	var baseMap = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
@@ -302,6 +303,7 @@ div.message.error {
 	 
 	  onAdd: function (map) {
 		var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom overpass-button');
+		container.title='Download OSM cameras from overpass-api.de';
 	  
 		container.onclick = function(e){
 		  overpassRequest();
@@ -342,6 +344,8 @@ div.message.error {
 		var buttonrecord = L.DomUtil.create('div', 'posistion-back-button posistion-back-record',container);
 		var buttonplay = L.DomUtil.create('div', 'posistion-back-button posistion-back-play',container);
 
+		buttonrecord.title='Save your position';
+		buttonplay.title='Recovery saved position';
 
         L.DomEvent
             .addListener(buttonplay, 'click', L.DomEvent.stopPropagation)
@@ -439,7 +443,7 @@ div.message.error {
 //language
 	typesObjLang = {
 		'accident': 'ДТП',
-		'cam': 'Камера',
+		'cam': 'Camera',
 		'maintenance': 'Дорожные работы',
 		'block': 'Движение заблокировано',
 		'message': 'Сообщение',
@@ -580,7 +584,7 @@ div.message.error {
 
 	function overpassPopup(el) {
 		text = ''
-		text = text+'<a target=_blank href="https://www.openstreetmap.org/'+el.type+'/'+el.id+'">'+el.id+'</a> <div lat="'+el.lat+'" lng="'+el.lon+'" osm='+el.type+el.id+' class="josm_edit" onclick="josmedit(this)"></div><br />'
+		text = text+'<a target=_blank href="https://www.openstreetmap.org/'+el.type+'/'+el.id+'">'+el.id+'</a> <div title="Edit in JOSM" lat="'+el.lat+'" lng="'+el.lon+'" osm='+el.type+el.id+' class="josm_edit" onclick="josmedit(this)"></div><br />'
 		for (tag in el.tags) {
 			text = text+'<span  style="display: block"><b>'+tag+'</b>: '+urlString(el.tags[tag],' ')+'</span>'
 		}
@@ -753,6 +757,9 @@ div.message.error {
 	}
 
 	function parseAdditions(str) {
+	
+		var sets = new Object
+	
 		if (str == null) {
 			return ''
 		}
@@ -767,24 +774,36 @@ div.message.error {
 		valobj['south'] = 'на юг';
 		valobj['west'] = 'на запад';
 		valobj['east'] = 'на восток';
-		valobj['northwest'] = 'на север-запад';
+		valobj['northwest'] = 'на северо-запад';
 		valobj['northeast'] = 'на северо-восток';
 		valobj['southwest'] = 'на юго-запад';
 		valobj['southeast'] = 'на юго-восток';
+		
+		dirobj = new Object;
+		dirobj['north'] = 0;
+		dirobj['south'] = 180;
+		dirobj['west'] = 270;
+		dirobj['east'] = 90;
+		dirobj['northwest'] = 315;
+		dirobj['southwest'] = 225;
+		dirobj['southeast'] = 135;
+		dirobj['northeast'] = 45;
 		
 		rstr='';
 		
 		vals.forEach(function(e) {
 			result = e.match(/^speed:(\d+)$/i)
 			if (result) {
-				rstr = rstr+'Скорость '+result[1]+'км/ч '
+				rstr = rstr+'maxspeed '+result[1]+'km/h '
+				sets['maxspeed']=parseInt(result[1],10)
 			}
 		})
 		
 		vals.forEach(function(e) {
 			result = e.match(/^direction:(\d+)$/i)
 			if (result) {
-				rstr = rstr+'Направление '+result[1]+'град. '
+				rstr = rstr+'direction '+result[1]+'deg '
+				sets['direction']=parseInt(result[1],10)
 			}
 		})
 		
@@ -818,16 +837,13 @@ div.message.error {
 		vals.forEach(function(item) {
 			if (typeof(valobj[item]) != 'undefined') {
 				rstr = rstr+valobj[item]+' ';
+				if (dirobj[item] != undefined) {
+					sets['direction']= parseInt(dirobj[item],10)
+				}
 			}
 		});
-		
-		return rstr;
-	}
-
-	function cam_DirectionOnMap(latlng,dir) {
-		var boundary = { "type": "Feature", "geometry": {"type":"Polygon","coordinates":[]}};
-		var poly = L.geoJson(boundary);
-		return poly
+		sets['text']=rstr;
+		return sets;
 	}
 
 	function parseTypesObj(str) {
@@ -953,17 +969,23 @@ div.message.error {
 
 					if ($('#element_'+quadr+element).length < 1) {
 						rsLayers[marker.feature.properties.index].addLayer(marker);
+						if (marker.feature.properties.direction) {
+							rsLayers[marker.feature.properties.index].addLayer(marker.feature.properties.direction);
+						}
 						span_class="fromspeedcaminfo"
 						switch(marker.feature.properties.index) {
 							case 'speedcammapping_speedcamonline': span_class="fromspeedcaminfo"; break;
 							case 'speedcammapping_gibdd': span_class="fromgibdd"; break;
 							default: span_class="undefined"
 						};
-						$('#elements_list').append('<span class="element_span '+span_class+'" id="element_'+quadr+element+'"><div class="element_ico"><div onclick="click_onmarker([\''+quadr+'\',\''+element+'\'])" class="element_img" style="background-image: url(src/img/medium/'+marker.feature.properties.type+'.png);"></div><div class="element_osm"></div></div>'+marker.feature.properties.text+'<br>'+marker.feature.properties.link+'<div lat='+marker._latlng.lat+' lng='+marker._latlng.lng+' class="josm_edit" onclick="josmedit(this)"></div></span>');
+						$('#elements_list').append('<span class="element_span '+span_class+'" id="element_'+quadr+element+'"><div class="element_ico"><div onclick="click_onmarker([\''+quadr+'\',\''+element+'\'])" class="element_img" style="background-image: url(src/img/medium/'+marker.feature.properties.type+'.png);"></div><div title="Open node in OSM website" class="element_osm"></div></div>'+marker.feature.properties.text+'<br>'+marker.feature.properties.link+'<div title="Edit in JOSM" lat='+marker._latlng.lat+' lng='+marker._latlng.lng+' class="josm_edit" onclick="josmedit(this)"></div></span>');
 					};
 					
 				} else {
 					mymap.removeLayer(marker)
+					if (marker.feature.properties.direction) {
+						mymap.removeLayer(marker.feature.properties.direction);
+					}
 					$('#element_'+quadr+element).detach();
 				}
 			}
@@ -971,6 +993,16 @@ div.message.error {
 	}
 	
 	
+	
+	function camdir(x,y,angleInDegrees) {
+		camdirradius=100
+		angle=16
+		point1 = L.GeometryUtil.destination(L.latLng(x, y), angleInDegrees+(angle/2), camdirradius);
+		point2 = L.GeometryUtil.destination(L.latLng(x, y), angleInDegrees-(angle/2), camdirradius);
+		a = [[x,y],point1,point2]
+        var polygon = L.polygon(a, {color: 'red'});
+		return polygon;
+	}
 	
 	function loadQuadr(quadr) {
 		if (rsLoads>20) {
@@ -998,10 +1030,13 @@ div.message.error {
 			data.items.forEach(function(item) {
 				if (typeof(rsMarkers[quadr][item._index+item._id]) == 'undefined') {
 					link=urlString(item._source.source,' ')
-					addition = parseTypesObj(item._source.type)+' '+parseAdditions(item._source.addition)
-					popupText="<img style='max-width: 25px;' src='src/img/medium/"+item._source.type+".png'> "+ParseData(item._source.time)+" <br />"+addition +" <p><b>"+item._source.text+"</b></p> <div lat='"+item._source.location.lat+"' lng='"+item._source.location.lon+"' class='josm_edit' onclick='josmedit(this)'></div> <div style='text-align:right'>"+link+"</div>"
+					addition = parseAdditions(item._source.addition)
+					popupText="<img style='max-width: 25px;' src='src/img/medium/"+item._source.type+".png'> "+ParseData(item._source.time)+" <br />"+parseTypesObj(item._source.type)+' '+addition.text +" <p><b>"+item._source.text+"</b></p> <div title='Edit in JOSM' lat='"+item._source.location.lat+"' lng='"+item._source.location.lon+"' class='josm_edit' onclick='josmedit(this)'></div> <div style='text-align:right'>"+link+"</div>"
 					newMarker = L.marker([item._source.location.lat, item._source.location.lon],{icon: rsIcons[item._source.type]}).bindPopup(popupText).on('popupopen', objectPopup)
 					newMarker.feature = {properties: {index: item._index, id: item._id, type: item._source.type, source: item._source.source, text: item._source.text, link: link}}
+					if (addition.direction) {
+						newMarker.feature.properties.direction = camdir(item._source.location.lat, item._source.location.lon, addition.direction)
+					}
 					rsMarkers[quadr][item._index+item._id] = newMarker
 				}
 				rsNewMarkers.push(''+item._index+item._id)
@@ -1011,6 +1046,9 @@ div.message.error {
 				if (!rsNewMarkers.includes(element)) {
 					$('#element_'+quadr+element).remove();
 					mymap.removeLayer(rsMarkers[quadr][element])
+					if (rsMarkers[quadr][element].feature.properties.direction) {
+						mymap.removeLayer(rsMarkers[quadr][element].feature.properties.direction)
+					}
 					delete rsMarkers[quadr][element]
 				}
 				showMarker(quadr,element)
@@ -1039,6 +1077,9 @@ div.message.error {
 		if (rsMarkers[quadr] != undefined) {
 			$.each(rsMarkers[quadr], function(id, item) {
 				mymap.removeLayer(item);
+				if (item.feature.properties.direction) {
+					mymap.removeLayer(item.feature.properties.direction);
+				}
 				$('#element_'+quadr+id).remove();
 			})
 			delete rsMarkers[quadr]

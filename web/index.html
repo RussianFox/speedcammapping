@@ -465,6 +465,9 @@ div.message.error {
 				for(var element in rsMarkers[quadr]) {
 					if (rsMarkers[quadr][element].feature.properties.needhide) {
 						mymap.removeLayer(rsMarkers[quadr][element])
+						if (rsMarkers[quadr][element].feature.properties.direction) {
+							mymap.removeLayer(rsMarkers[quadr][element].feature.properties.direction)
+						}
 					}
 				}
 			}
@@ -482,6 +485,9 @@ div.message.error {
 				for(var element in rsMarkers[quadr]) {
 					if (rsMarkers[quadr][element].feature.properties.needhide) {
 						mymap.addLayer(rsMarkers[quadr][element])
+						if (rsMarkers[quadr][element].feature.properties.direction) {
+							mymap.addLayer(rsMarkers[quadr][element].feature.properties.direction)
+						}
 					}
 				}
 			}

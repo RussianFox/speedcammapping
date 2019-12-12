@@ -217,6 +217,13 @@ div.message.error {
 </div></div></div>
 <script>
 
+	if (!String.prototype.startsWith) {
+		String.prototype.startsWith = function(searchString, position){
+		  position = position || 0;
+		  return this.substr(position, searchString.length) === searchString;
+	  };
+	}
+
 	if (!Array.prototype.includes) {
 		Array.prototype.includes = function() {
 			'use strict';
@@ -626,7 +633,7 @@ div.message.error {
 	}
 
 	function modurl(urls) {
-		url = urls
+		url = ""+urls
 		//http->https
 		url = url.replace(/^https/g, "http");
 		//удаляем www
@@ -649,12 +656,12 @@ div.message.error {
 		rsLayers['overpass_hide'].clearLayers();
 		rsLayers['links_speedcammapping_speedcamonline'].clearLayers();
 		rsLayers['links_speedcammapping_gibdd'].clearLayers();
-		for (item in els) {
-			if (els[item].type == 'relation') {
-				tags = els[item].tags
-				for (mem in els[item].members) {
+		for (nitem in els) {
+			if (els[nitem].type == 'relation') {
+				tags = els[nitem].tags
+				for (mem in els[nitem].members) {
 					for (sitem in els) {
-						if ( (els[sitem].id == els[item].members[mem].ref) && (els[sitem].type == els[item].members[mem].type) ) {
+						if ( (els[sitem].id == els[nitem].members[mem].ref) && (els[sitem].type == els[nitem].members[mem].type) ) {
 							els[sitem].role
 							//добавляем точке все теги
 							//console.log(els[sitem].id+' in relation '+els[item].id)
@@ -667,31 +674,31 @@ div.message.error {
 									}
 								}
 							}
-							els[sitem].tags.role=els[item].members[mem].role
+							els[sitem].tags.role=els[nitem].members[mem].role
 						}
 					}
 				}
 			}
 		}
-		for (item in els) {
-			if (els[item].tags == undefined) {
+		for (nitem in els) {
+			if (els[nitem].tags == undefined) {
 				continue;
 			};
-			if (els[item].type == 'relation') {
+			if (els[nitem].type == 'relation') {
 				continue;
 			};
-			if (els[item].type == 'way') {
+			if (els[nitem].type == 'way') {
 				continue;
 			};
-			var to = L.latLng(els[item].lat, els[item].lon);
+			var to = L.latLng(els[nitem].lat, els[nitem].lon);
 			var check=1;
 			var sources = []
 			var icon = 0
-			if (els[item].tags.source) {
-				sources = sources.concat(els[item].tags.source.split(';'))
+			if (els[nitem].tags.source) {
+				sources = sources.concat(els[nitem].tags.source.split(';'))
 			}
-			if (els[item].tags.ref) {
-				sources = sources.concat(els[item].tags.ref.split(';'))
+			if (els[nitem].tags.ref) {
+				sources = sources.concat(els[nitem].tags.ref.split(';'))
 			}
 			needhide=false
 			for (quadr in rsMarkers) {
@@ -725,9 +732,9 @@ div.message.error {
 								rsMarkers[quadr][marker].setIcon(rsIcons['dcam']);
 								rsMarkers[quadr][marker].feature.properties.needhide=true
 								$('#element_'+quadr+marker).addClass('marked');
-								$('#element_'+quadr+marker+' .element_osm').addClass('osm_'+els[item].type);
-								$('#element_'+quadr+marker+' .element_osm').click(function() { openurl('https://openstreetmap.org/'+els[item].type+'/'+els[item].id); });
-								$('#element_'+quadr+marker+' .josm_edit').attr('osm',els[item].type+els[item].id);
+								$('#element_'+quadr+marker+' .element_osm').addClass('osm_'+els[nitem].type);
+								$('#element_'+quadr+marker+' .element_osm').click(function() { openurl('https://openstreetmap.org/'+els[nitem].type+'/'+els[nitem].id); });
+								$('#element_'+quadr+marker+' .josm_edit').attr('osm',els[nitem].type+els[nitem].id);
 							}
 							
 							if (icon > 0) {
@@ -739,7 +746,7 @@ div.message.error {
 				}
 			}
 			if (check==1) {
-				rsLayers['overpass'+(needhide?'_hide':'')].addLayer(L.marker([els[item].lat, els[item].lon], {icon: overpassIcons[icon], options: { needhide: needhide }}).bindPopup(overpassPopup(els[item])))
+				rsLayers['overpass'+(needhide?'_hide':'')].addLayer(L.marker([els[nitem].lat, els[nitem].lon], {icon: overpassIcons[icon], options: { needhide: needhide }}).bindPopup(overpassPopup(els[nitem])))
 			}
 		}
 	};

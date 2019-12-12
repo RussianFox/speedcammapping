@@ -60,6 +60,10 @@ foreach ($files as $file) {
 		    $text="Speed: ".$speed;
 		};
 		if ($direction>0) {
+		    $direction = $direction+180;
+		    if ($direction>360) {
+			$direction = $direction-360;
+		    }
 		    $addition=($addition?$addition:"")."direction:".$direction.";";
 		};
 		if ($speed>0) {

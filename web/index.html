@@ -103,6 +103,23 @@ body {
 	display: none;
 }
 
+#elements_filter input{
+	border:solid 1px #aacfe4;
+	margin:2px 0 20px 10px;
+}
+
+#elements_filter input +- label {
+    padding-left: 20px;
+    width:70px;
+    margin-right:15px;
+}
+
+#elements_filter input + label {
+    padding-left: 2px;
+    width:70px;
+    margin:0;
+}
+
 #mapid {
     width: 70%;
     height: 100%;
@@ -111,21 +128,29 @@ body {
     display: inline-block;
 }
 
-#elements_filter {
-    height: 50px;
-    display: inline-block;
-    width: 100%;
-	position:absolut;
-	top:0;
-	left:0;
-}
-
-#elements_list {
+#right_menu {
     height: 100%;
     display: inline-block;
     width: 30%;
     vertical-align: top;
-	overflow: scroll;
+	padding-top:100px;
+	position: fixed;
+	box-sizing: border-box;
+}
+
+#elements_filter {
+    height: 100px;
+    display: inline-block;
+    width: 100%;
+	position:absolute;
+	top:0;
+	left:0;
+	background-color:grey;
+}
+
+#elements_list {
+	overflow-y: scroll;
+	height:100%;
 }
 
 div.message {
@@ -204,17 +229,15 @@ div.message.error {
 
 
 <div style="width: 100%; height: 100%;">
-<div id="mapid"></div><div id="elements_list"><div id=elements_filter>
+<div id="mapid"></div><div id="right_menu"><div id=elements_filter>
 <input type="checkbox" id="elements_filter_hidemarked" value="supress">
 <label for="elements_filter_hidemarked">Hide marked</label>
 <input type="checkbox" id="elements_filter_showspeedcaminfo" checked>
-<label for="elements_filter_hidemarked">Show from speedcaminfo</label>
+<label for="elements_filter_showspeedcaminfo">Show from speedcaminfo</label>
 <input type="checkbox" id="elements_filter_showgibdd" checked>
-<label for="elements_filter_hidemarked">Show from gibdd</label>
-<input type="checkbox" id="elements_filter_showgibdd" checked>
-<label for="elements_filter_hidemarked">Show from gibdd</label>
+<label for="elements_filter_showgibdd">Show from gibdd</label>
 <button onClick=copyToClipboardLinks()>Copy links</button>
-</div></div></div>
+</div><div id="elements_list"></div></div></div>
 <script>
 
 	if (!String.prototype.startsWith) {
@@ -250,7 +273,7 @@ div.message.error {
 		};
 	}
 
-	var rsDebug=false
+	var rsDebug=true
 
 	var rsLayers = new Object
 	var rsMarkers = new Object
@@ -296,7 +319,7 @@ div.message.error {
 	
 	var overlayMaps = {
 		"Overpass": overpass_maps,
-		"Cameras ГИБДД": gibdd_maps,
+		"Cameras GIBDD": gibdd_maps,
 		"Cameras speedcamonline": speedcamonline_maps,
 	};
 
@@ -799,8 +822,8 @@ div.message.error {
 	
 		var sets = new Object
 	
-		if (str == null) {
-			return ''
+		if ((str == null) || (str == undefined) ) {
+			return {text: ''}
 		}
 		vals = str.split([';']);
 		valobj = new Object;
@@ -882,6 +905,7 @@ div.message.error {
 			}
 		});
 		sets['text']=rstr;
+		debug(sets);
 		return sets;
 	}
 
@@ -1227,7 +1251,10 @@ div.message.error {
 	}
 	
 	function saveMapPosition() {
-		Cookies.set('mapCenter', mymap._lastCenter.lat+', '+mymap._lastCenter.lng+', '+mymap._zoom, { expires:365 });
+		mlatlng = mymap._lastCenter
+		if (mlatlng != undefined) {
+			Cookies.set('mapCenter', mlatlng.lat+', '+mlatlng.lng+', '+mymap._zoom, { expires:365 });
+		}
 	}
 	
 

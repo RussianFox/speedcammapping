@@ -273,7 +273,7 @@ div.message.error {
 		};
 	}
 
-	var rsDebug=true
+	var rsDebug=false
 
 	var rsLayers = new Object
 	var rsMarkers = new Object
@@ -283,6 +283,16 @@ div.message.error {
 	var rsIcons = new Object();
 	var rsMarkers = new Object();
 	enableLoading = false
+
+	$.xhrPool = [];
+	$.xhrPool.abortAll = function() {
+		$(this).each(function(idx, jqXHR) {
+			jqXHR.abort();
+		});
+		//$.xhrPool = [];
+		$.xhrPool.length = 0
+		debug('Abort all loads');
+	};
 
 //setup map
 	var mymap = L.map('mapid');
@@ -673,12 +683,16 @@ div.message.error {
 		return false
 	}
 
-	function overpassLoad(els) {
-		maxdistance=30;
+	function overpassClean() {
 		rsLayers['overpass'].clearLayers();
 		rsLayers['overpass_hide'].clearLayers();
 		rsLayers['links_speedcammapping_speedcamonline'].clearLayers();
 		rsLayers['links_speedcammapping_gibdd'].clearLayers();
+	}
+
+	function overpassLoad(els) {
+		maxdistance=30;
+		overpassClean()
 		for (nitem in els) {
 			if (els[nitem].type == 'relation') {
 				tags = els[nitem].tags
@@ -693,7 +707,11 @@ div.message.error {
 							} else {
 								for (var k in tags) {
 									if (tags.hasOwnProperty(k)) {
-									   els[sitem].tags[k] = tags[k];
+										if (els[sitem].tags[k] && k=='source') {
+											els[sitem].tags[k] = (els[sitem].tags[k].split(';').concat(tags[k].split(';'))).join(';')
+										} else {
+											els[sitem].tags[k] = tags[k];
+										}
 									}
 								}
 							}
@@ -1031,7 +1049,7 @@ div.message.error {
 				if (inMap(marker._latlng.lat, marker._latlng.lng)) {
 
 					if ($('#element_'+quadr+element).length < 1) {
-						rsLayers[marker.feature.properties.index].addLayer(marker);
+						if (rsLayers[marker.feature.properties.index]) { rsLayers[marker.feature.properties.index].addLayer(marker) };
 						if (marker.feature.properties.direction) {
 							rsLayers[marker.feature.properties.index].addLayer(marker.feature.properties.direction);
 						}
@@ -1067,6 +1085,7 @@ div.message.error {
 		return polygon;
 	}
 	
+
 	function loadQuadr(quadr) {
 		if (rsLoads>20) {
 			return false;
@@ -1074,59 +1093,70 @@ div.message.error {
 		rsLoads = rsLoads+1
 		debug(rsLoads+' (+)')
 		jQuery('.download-control').addClass('download-now');
-		if (rsMarkers[quadr] == undefined) {
-			rsMarkers[quadr] = new Object
-		}
 		if (rsLoadQuadrs[quadr]) {
 			delete rsLoadQuadrs[quadr]
 		}
 
-		$.getJSON('https://speedcammapping.lisss.website/get.php?quadr='+quadr, function(data) {
-
-			quadr=data.quadr.id
-			debug('Loaded '+quadr)
-			//rsMarkers[quadr] = new Object
-			if (typeof(rsMarkers[quadr]) == 'undefined') {
-				rsMarkers[quadr] = new Object;
-			}
-			var rsNewMarkers = []
-			data.items.forEach(function(item) {
-				if (typeof(rsMarkers[quadr][item._index+item._id]) == 'undefined') {
-					link=urlString(item._source.source,' ')
-					addition = parseAdditions(item._source.addition)
-					popupText="<img style='max-width: 25px;' src='src/img/medium/"+item._source.type+".png'> "+ParseData(item._source.time)+" <br />"+parseTypesObj(item._source.type)+' '+addition.text +" <p><b>"+item._source.text+"</b></p> <div title='Edit in JOSM' lat='"+item._source.location.lat+"' lng='"+item._source.location.lon+"' class='josm_edit' onclick='josmedit(this)'></div> <div style='text-align:right'>"+link+"</div>"
-					newMarker = L.marker([item._source.location.lat, item._source.location.lon],{icon: rsIcons[item._source.type]}).bindPopup(popupText).on('popupopen', objectPopup)
-					newMarker.feature = {properties: {index: item._index, id: item._id, type: item._source.type, source: item._source.source, text: item._source.text, link: link}}
-					if (addition.direction) {
-						newMarker.feature.properties.direction = camdir(item._source.location.lat, item._source.location.lon, addition.direction)
+		$.ajax({
+			url: 'https://speedcammapping.lisss.website/get.php?quadr='+quadr,
+			dataType: 'json',
+			success: function(data) {
+				if (!enableLoading) {
+					return
+				}
+				quadr=data.quadr.id
+				debug('Loaded '+quadr)
+				if (typeof(rsMarkers[quadr]) == 'undefined') {
+					rsMarkers[quadr] = new Object;
+				}
+				var rsNewMarkers = []
+				data.items.forEach(function(item) {
+					if (typeof(rsMarkers[quadr][item._index+item._id]) == 'undefined') {
+						link=urlString(item._source.source,' ')
+						addition = parseAdditions(item._source.addition)
+						popupText="<img style='max-width: 25px;' src='src/img/medium/"+item._source.type+".png'> "+ParseData(item._source.time)+" <br />"+parseTypesObj(item._source.type)+' '+addition.text +" <p><b>"+item._source.text+"</b></p> <div title='Edit in JOSM' lat='"+item._source.location.lat+"' lng='"+item._source.location.lon+"' class='josm_edit' onclick='josmedit(this)'></div> <div style='text-align:right'>"+link+"</div>"
+						newMarker = L.marker([item._source.location.lat, item._source.location.lon],{icon: rsIcons[item._source.type]}).bindPopup(popupText).on('popupopen', objectPopup)
+						newMarker.feature = {properties: {index: item._index, id: item._id, type: item._source.type, source: item._source.source, text: item._source.text, link: link}}
+						if (addition.direction) {
+							newMarker.feature.properties.direction = camdir(item._source.location.lat, item._source.location.lon, addition.direction)
+						}
+						rsMarkers[quadr][item._index+item._id] = newMarker
 					}
-					rsMarkers[quadr][item._index+item._id] = newMarker
-				}
-				rsNewMarkers.push(''+item._index+item._id)
-			});
-			rsOldMarkers = Object.keys(rsMarkers[quadr])
-			rsOldMarkers.forEach(function(element) {
-				if (!rsNewMarkers.includes(element)) {
-					$('#element_'+quadr+element).remove();
-					mymap.removeLayer(rsMarkers[quadr][element])
-					if (rsMarkers[quadr][element].feature.properties.direction) {
-						mymap.removeLayer(rsMarkers[quadr][element].feature.properties.direction)
+					rsNewMarkers.push(''+item._index+item._id)
+				});
+				rsOldMarkers = Object.keys(rsMarkers[quadr])
+				rsOldMarkers.forEach(function(element) {
+					if (!rsNewMarkers.includes(element)) {
+						$('#element_'+quadr+element).remove();
+						mymap.removeLayer(rsMarkers[quadr][element])
+						if (rsMarkers[quadr][element].feature.properties.direction) {
+							mymap.removeLayer(rsMarkers[quadr][element].feature.properties.direction)
+						}
+						delete rsMarkers[quadr][element]
 					}
-					delete rsMarkers[quadr][element]
+					showMarker(quadr,element)
+				})
+			
+			},
+			beforeSend: function(jqXHR) {
+				$.xhrPool.push(jqXHR);
+			},
+			complete: function(jqXHR) {
+				var index = $.xhrPool.indexOf(jqXHR);
+				if (index > -1) {
+					$.xhrPool.splice(index, 1);
 				}
-				showMarker(quadr,element)
-			})
-		}).always(function() {
-			rsLoads = Math.max(0,rsLoads-1)
-			if (rsLoads == 0) {
-				jQuery('.download-control').removeClass('download-now');
-				if (Object.keys(rsLoadQuadrs).length > 0) {
-					loadMarkers(true);
+				rsLoads = Math.max(0,rsLoads-1)
+				if (rsLoads == 0) {
+					jQuery('.download-control').removeClass('download-now');
+					if (Object.keys(rsLoadQuadrs).length > 0) {
+						loadMarkers(true);
+					}
 				}
+				debug(rsLoads+' (-)')
 			}
-			debug(rsLoads+' (-)')
-		});
-	}
+		})
+	};
 	
 	function click_onmarker(ee) {
 		if (rsMarkers[ee[0]] !== undefined) {
@@ -1138,14 +1168,15 @@ div.message.error {
 	
 	function deleteQuadr(quadr) {
 		if (rsMarkers[quadr] != undefined) {
-			$.each(rsMarkers[quadr], function(id, item) {
+			dMarkers = rsMarkers[quadr]
+			delete rsMarkers[quadr]
+			$.each(dMarkers, function(id, item) {
 				mymap.removeLayer(item);
 				if (item.feature.properties.direction) {
 					mymap.removeLayer(item.feature.properties.direction);
 				}
 				$('#element_'+quadr+id).remove();
 			})
-			delete rsMarkers[quadr]
 			debug('Deleted  '+quadr)
 		}
 	}
@@ -1172,14 +1203,18 @@ div.message.error {
 	}
 	
 	function clearMap() {
-		rsOldLayers = Object.keys(rsMarkers)
+		$.xhrPool.abortAll();
+		overpassClean();
+		rsOldLayers = Object.keys(rsMarkers);
 		rsOldLayers.forEach(function(element) {
 			deleteQuadr(parseInt(element))
-		})
+		});
 	}
 	
 	function changeQuadrs(e) {
 	
+		$.xhrPool.abortAll();
+		
 		if ($('#elements_filter_hidemarked')[0].checked) {
 			$('#elements_filter_hidemarked').trigger('click');
 		}
@@ -1235,6 +1270,7 @@ div.message.error {
 		})
 		
 		debug(Object.keys(rsMarkers))
+		loadMarkers(true);
 		
 	}
 	

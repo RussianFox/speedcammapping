@@ -9,13 +9,13 @@ $request_body = file_get_contents('php://input');
 $url = 'https://www.overpass-api.de/api/interpreter';
 $bbox = false;
 
-if ($_GET['quadr']) {
-    $bbox = coord_quadr($_GET['quadr']);
+if (isset($_REQUEST['quadr'])) {
+    $bbox = coord_quadr($_REQUEST['quadr']);
     $bbox=$bbox['y1'].",".$bbox['x1'].",".$bbox['y2'].",".$bbox['x2'];
 };
 
-if (isset($_GET['bbox'])) {
-    $bbox=$_GET['bbox'];
+if (isset($_REQUEST['bbox'])) {
+    $bbox=$_REQUEST['bbox'];
 };
 
 if (!$bbox) {

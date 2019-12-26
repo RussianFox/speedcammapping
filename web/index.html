@@ -683,6 +683,13 @@ div.message.error {
 		return false
 	}
 
+	function layersClean() {
+		rsLayers['speedcammapping_gibdd'].clearLayers();
+		rsLayers['speedcammapping_speedcamonline'].clearLayers();
+		rsLayers['links_speedcammapping_gibdd'].clearLayers();
+		rsLayers['links_speedcammapping_speedcamonline'].clearLayers();
+	}
+
 	function overpassClean() {
 		rsLayers['overpass'].clearLayers();
 		rsLayers['overpass_hide'].clearLayers();
@@ -1209,6 +1216,8 @@ div.message.error {
 		rsOldLayers.forEach(function(element) {
 			deleteQuadr(parseInt(element))
 		});
+		layersClean();
+		overpassClean();
 	}
 	
 	function changeQuadrs(e) {

@@ -368,7 +368,7 @@ function get_quadr($quadr,$days) {
 			]
 		];
 		if ($days>0) {
-			$params['body']['query']['bool']['must_not']['term'] =
+			$params['body']['query']['bool']['must_not']['range'] =
 			[
 				"time" => [
 					'gte'=>"now-".$days."d/d"

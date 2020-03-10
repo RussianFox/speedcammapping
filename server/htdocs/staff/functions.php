@@ -371,7 +371,7 @@ function get_quadr($quadr,$days) {
 			$params['body']['query']['bool']['must_not']['range'] =
 			[
 				"time" => [
-					'gte'=>"now-".$days."d/d"
+					'lt'=>"now-".$days."d/d"
 				]
 			];
 		};

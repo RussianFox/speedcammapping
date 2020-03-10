@@ -23,7 +23,7 @@ if (!$bbox) {
 }
 
 $request_body="data=[out:json][timeout:60];(node[highway=speed_camera]($bbox);relation[type=enforcement][enforcement=maxspeed]($bbox););(._;>;);out;";
-$request_body="data=[out:json][timeout:60];relation[\"enforcement\"=\"maxspeed\"]($bbox)->.a;(.a;node[\"highway\"=\"speed_camera\"]($bbox);node(r.a:\"to\");node(r.a:\"device\"););out meta;";
+$request_body="data=[out:json][timeout:60];relation[\"type\"=\"enforcement\"][\"enforcement\"~\"^[maxheight|maxweight|mindistance|traffic_signals|check|access|road_marking]+$\"]($bbox)->.a;(.a;node[\"highway\"=\"speed_camera\"]($bbox);node(r.a:\"to\");node(r.a:\"device\"););out meta;";
 
 
 // use key 'http' even if you send the request to https://...

@@ -237,6 +237,10 @@ div.message.error {
 <input type="checkbox" id="elements_filter_showgibdd" checked>
 <label for="elements_filter_showgibdd">Show from gibdd</label>
 <button onClick=copyToClipboardLinks()>Copy links</button>
+<br>
+<label for="elements_filter_daysage">Days count elements age (0 - all elements)</label>
+<input type="input" id="elements_filter_daysage">
+
 </div><div id="elements_list"></div></div></div>
 <script>
 
@@ -1105,7 +1109,7 @@ div.message.error {
 		}
 
 		$.ajax({
-			url: 'https://speedcammapping.lisss.website/get.php?quadr='+quadr,
+			url: 'https://speedcammapping.lisss.website/get.php?days='+parseInt($("#elements_filter_daysage").val())+'&quadr='+quadr,
 			dataType: 'json',
 			success: function(data) {
 				if (!enableLoading) {

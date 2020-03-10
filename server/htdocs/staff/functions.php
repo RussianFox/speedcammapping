@@ -343,7 +343,7 @@ function update_object_int($id,$lng, $lat, $type="other", $text="", $addition=""
 }
 
 
-function get_quadr($quadr) {
+function get_quadr($quadr,$days) {
     global $client;
     $start = microtime(true);
     $coords = coord_quadr($quadr);
@@ -356,17 +356,25 @@ function get_quadr($quadr) {
         $params['index'] = 'speedcammapping*';
 		$params['size'] = 100;
 		$params['from'] = $iloaded;
-			$params['body']['query']['geo_bounding_box']['location'] =
+		$params['body']['query']['bool']['must']['geo_bounding_box']['location'] =
+		[
+			'top_left'=>[
+				'lat'=>$coords['y2'],
+				'lon'=>$coords['x1']
+			],
+			'bottom_right'=>[
+				'lat'=>$coords['y1'],
+				'lon'=>$coords['x2']
+			]
+		];
+		if ($days>0) {
+			$params['body']['query']['bool']['must_not']['term'] =
 			[
-				'top_left'=>[
-					'lat'=>$coords['y2'],
-					'lon'=>$coords['x1']
-				],
-				'bottom_right'=>[
-					'lat'=>$coords['y1'],
-					'lon'=>$coords['x2']
+				"time" => [
+					'gte'=>"now-".$days."d/d"
 				]
 			];
+		};
 		$result = $client->search($params);
 		$items = array_merge($items,$result['hits']['hits']);
 		$iloaded=count($items);

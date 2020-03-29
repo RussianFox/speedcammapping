@@ -5,6 +5,14 @@ include "../staff/functions.php";
 echo "Start ".date('Y-m-d H:i:s')."\r\n";
 
 $index="speedcammapping_speedcamonline";
+$index_alias=FALSE; //FALSE if no need
+$bool=$client->indices()->exists(['index' => $index]);
+if (!$bool) {
+	echo "Index is not exist, creating it \r\n";
+    $response = $client->indices()->create(['index' => $index]);
+}
+$query = $client->count(['index' => $index]);
+$docsCount_start=1*$query['count'];
 
 // Create a stream
 $opts = [
@@ -33,7 +41,7 @@ $files[] = "EU";
 $files[] = "Armenia";
 
 $ids=false;
-$needclean=true;
+$need_clean=true;
 
 foreach ($files as $file) {
     $ii=0;
@@ -42,51 +50,52 @@ foreach ($files as $file) {
     echo "File ".$url;
     $filec = @file($url,false,$context);
     if ($filec) {
-	echo " loaded success\r\n";
+		echo " loaded success\r\n";
         foreach ($filec as $line) {
-	    $cam = explode(",", $line);
-    	    if (count($cam)==7) {
-    		$ii++;
-    		$id=(1*trim($cam[0]));
-    		$fullid=$file.$id;
-		$lng=1*trim($cam[1]);
-		$lat=1*trim($cam[2]);
-	        $speed=1*trim($cam[4]);
-	        $lanes=1*trim($cam[5]);
-		$direction=1*trim($cam[6]);
-		$addition=null;
-		$text="";
-		if ($speed>0){
-		    $text="Speed: ".$speed;
+			$cam = explode(",", $line);
+			if (count($cam)==7) {
+				$ii++;
+				if (!is_numeric(trim($cam[0]))) { continue; };
+				$id=(1*trim($cam[0]));
+				$fullid=$file.$id;
+				$lng=1*trim($cam[1]);
+				$lat=1*trim($cam[2]);
+				$speed=1*trim($cam[4]);
+				$direction=1*trim($cam[5]);
+				$text="";
+				if ( ($speed>0) and ($direction>0) ) {
+					$text="Speed: ".$speed." ".($direction==1?"one way":"in both direction");
+				};
+				update_object_int($fullid,$lng,$lat,"cam",$text,null,"http://speedcamonline.ru/point/$file/$id",$index);
+				$ids[]=$fullid;
+			}
 		};
-		if ($direction>0) {
-		    $direction = $direction+180;
-		    if ($direction>360) {
-			$direction = $direction-360;
-		    }
-		    $addition=($addition?$addition:"")."direction:".$direction.";";
-		};
-		if ($speed>0) {
-		    $addition=($addition?$addition:"")."speed:".$speed.";";
-		};
-		if ($lanes>0) {
-		    $addition=($addition?$addition:"")."lanes:".$lanes.";";
-		};
-		update_object_int($fullid,$lng,$lat,"cam",$text,$addition,"http://speedcamonline.ru/point/$file/$id",$index);
-		$ids[]=$fullid;
-	    }
-	};
-	echo "Objects: $ii\r\n";
     } else {
-	echo " loading failed\r\n";
-	$needclean=false;
+		echo " loading failed\r\n";
+		$need_clean=false;
     }
 };
 
-if ($needclean) {
-    echo "Start cleaning\r\n";
-    clean_objects($index,'must_not',$ids);
+echo "Loading objects success \r\n";
+
+$query = $client->count(['index' => $index]);
+$docsCount_add=1*$query['count'];
+$docsCount_clean=$docsCount_add;
+if ($need_clean) {
+	if (((count($ids))/$docsCount_start)*100 > 70) {
+		clean_objects($index,'must_not',$ids);
+		echo "Cleaning success \r\n";
+		$query = $client->count(['index' => $index]);
+		$docsCount_clean=1*$query['count'];
+	} else {
+		echo "Cleaning cancelled \r\n";
+	};
+} else {
+	echo "Cleaning canceled, we have broken regions \r\n";
 };
+
+if ($index_alias) { replace_index_alias($index,$index_alias); };
+echo "Statistics. Docs added: ".($docsCount_add-$docsCount_start)." Docs cleaned: ".($docsCount_add-$docsCount_clean)." Docs now: ".$docsCount_clean."\r\n";
 
 echo "Finish ".date('Y-m-d H:i:s')."\r\n";
 echo "----------------------------------------\r\n";

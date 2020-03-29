@@ -38,7 +38,7 @@ function convert_coords($x1,$y1,$x2,$y2) {
     return $arr;
 }
 
-function coord_quadr($qu) {
+function coord_quadr_err($qu) {
     $xc=$GLOBALS['xmax']-$GLOBALS['xmin'];
     $xq=$xc/$GLOBALS['xstep'];
     $tv=floor(($qu-1)/$xq);
@@ -46,6 +46,18 @@ function coord_quadr($qu) {
     $y2=$y1+$GLOBALS['ystep'];
     $x2=(($qu-($tv*$xq))*$GLOBALS['xstep'])+$GLOBALS['xmin'];
     $x1=$x2-$GLOBALS['xstep'];
+    $arr=['x1' => $x1, 'x2' => $x2, 'y1' => $y1, 'y2' => $y2];
+    return $arr;
+}
+
+function coord_quadr($qu) {
+    $xc=$GLOBALS['xmax']-$GLOBALS['xmin'];
+    $xq=$xc/$GLOBALS['xstep'];
+	$tv=floor(($qu)/$xq);
+	$y1=($tv*$GLOBALS['ystep'])+$GLOBALS['ymin'];
+    $y2=$y1+$GLOBALS['ystep'];
+	$x1 = (($qu-($xq*$tv))*$GLOBALS['xstep'])+$GLOBALS['xmin'];
+	$x2 = $x1+$GLOBALS['xstep'];
     $arr=['x1' => $x1, 'x2' => $x2, 'y1' => $y1, 'y2' => $y2];
     return $arr;
 }

@@ -61,7 +61,7 @@ foreach ($files as $file) {
 				$lng=1*trim($cam[1]);
 				$lat=1*trim($cam[2]);
 				$speed=1*trim($cam[4]);
-				$direction=1*trim($cam[5]);
+				$direction=1*trim($cam[6]);
 				$text="";
 				if ( ($speed>0) and ($direction>0) ) {
 					$text="Speed: ".$speed." ".($direction==1?"one way":"in both direction");

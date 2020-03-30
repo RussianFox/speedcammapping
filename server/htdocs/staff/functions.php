@@ -322,19 +322,21 @@ function update_object_int($id,$lng, $lat, $type="other", $text="", $addition=""
     	'id'    => $id,
     	'body'  => [
     		'doc' => [
-			'location' => [
-			    'lat' => 1*$lat,
-			    'lon' => 1*$lng
-			],
-			'addition' => $addition,
-			'text' => $text
+                'location' => [
+                    'lat' => 1*$lat,
+                    'lon' => 1*$lng
+                ],
+                'addition' => $addition,
+                'text' => $text
     		],
     		'upsert' => [
-		    'time' => time(),
-    		    'type' => $type,
-		    'location' => [
-			'lat' => 1*$lat,
-			'lon' => 1*$lng
+                'time' => time(),
+                    'type' => $type,
+                'location' => [
+                'lat' => 1*$lat,
+                'lon' => 1*$lng,
+                'addition' => $addition,
+                'text' => $text
 		    ],
 		    'geometry' => $geometry,
 		    'addition' => $addition,

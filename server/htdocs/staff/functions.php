@@ -331,10 +331,11 @@ function update_object_int($id,$lng, $lat, $type="other", $text="", $addition=""
     		],
     		'upsert' => [
                 'time' => time(),
-                    'type' => $type,
+                'type' => $type,
                 'location' => [
-                'lat' => 1*$lat,
-                'lon' => 1*$lng,
+                    'lat' => 1*$lat,
+                    'lon' => 1*$lng
+                ],
                 'addition' => $addition,
                 'text' => $text
 		    ],

@@ -152,8 +152,8 @@ function add_object($lng, $lat, $type="other", $text="", $addition="", $source="
     	    'time' => time(),
     	    'type' => $type,
 	    'location' => [
-		'lat' => $lat,
-		'lon' => $lng
+            'lat' => $lat,
+            'lon' => $lng
 	    ],
 	    'addition' => $addition,
 	    'source' => $source,
@@ -286,8 +286,8 @@ function add_object_int($lng, $lat, $type="other", $text="", $addition="", $sour
     	    'time' => time(),
     	    'type' => $type,
 	    'location' => [
-		'lat' => $lat,
-		'lon' => $lng
+            'lat' => $lat,
+            'lon' => $lng
 	    ],
 	    'addition' => $addition,
 	    'source' => $source,

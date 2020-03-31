@@ -345,7 +345,6 @@ function update_object_int($id,$lng, $lat, $type="other", $text="", $addition=""
 		    'text' => $text,
 		    'confirm' => 0,
 		    'discard' => 0
-    		]
         ]
     ];
 

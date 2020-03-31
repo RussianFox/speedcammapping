@@ -11,7 +11,7 @@ function numberFormat($digit, $width) {
 echo "Start ".date('Y-m-d H:i:s')."\r\n";
 
 $ex_regs=array(20,80,81,84,85,88,90,91,93,94);
-$index="roadsituation_gibdd";
+$index="speedcammapping_gibdd";
 $index_alias=FALSE; //FALSE if no need
 $bool=$client->indices()->exists(['index' => $index]);
 if (!$bool) {

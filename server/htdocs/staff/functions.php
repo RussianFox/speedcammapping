@@ -78,46 +78,46 @@ function vote_object($index,$id,$vote) {
     $val = 1*$vote;
     if ($val==1) {
         $params = [
-	    'index' => $index,
+            'index' => $index,
     	    'id'    => $id,
     	    'type' => '_doc',
     	    'body'  => [
-    		'script' => [
-        	    'source' => 'ctx._source.confirm += params.count',
-        	    'params' => [
-        		'count' => 1
-        	    ],
-    		],
-    		'upsert' => [
-    		    'confirm' => 1
-    		]
+                'script' => [
+                    'source' => 'ctx._source.confirm += params.count',
+                    'params' => [
+                        'count' => 1
+                    ]
+                ],
+                'upsert' => [
+                    'confirm' => 1
+                ]
     	    ]
-	];
+        ];
 
-	$result = $client->update($params);
-	return;
+        $result = $client->update($params);
+        return;
     }
 
     if ($val==-1) {
         $params = [
-		'index' => $index,
+            'index' => $index,
     	    'id'    => $id,
     	    'type' => '_doc',
     	    'body'  => [
-    		'script' => [
-        	    'source' => 'ctx._source.discard += params.count',
-        	    'params' => [
-        		'count' => 1
-        	    ],
-    		],
-    		'upsert' => [
-    		    'discard' => 1
-    		]
+                'script' => [
+                    'source' => 'ctx._source.discard += params.count',
+                    'params' => [
+                        'count' => 1
+                    ]
+                ],
+                'upsert' => [
+                    'discard' => 1
+                ]
     	    ]
-	];
+        ];
 
-	$result = $client->update($params);
-	return;
+        $result = $client->update($params);
+        return;
     }
 
     add_error("Wrong vote");
@@ -151,15 +151,15 @@ function add_object($lng, $lat, $type="other", $text="", $addition="", $source="
         'body' => [
     	    'time' => time(),
     	    'type' => $type,
-	    'location' => [
-            'lat' => $lat,
-            'lon' => $lng
-	    ],
-	    'addition' => $addition,
-	    'source' => $source,
-	    'text' => $text,
-	    'confirm' => 0,
-	    'discard' => 0
+            'location' => [
+                'lat' => $lat,
+                'lon' => $lng
+            ],
+            'addition' => $addition,
+            'source' => $source,
+            'text' => $text,
+            'confirm' => 0,
+            'discard' => 0
     	]
     ];
 
@@ -285,15 +285,15 @@ function add_object_int($lng, $lat, $type="other", $text="", $addition="", $sour
         'body' => [
     	    'time' => time(),
     	    'type' => $type,
-	    'location' => [
-            'lat' => $lat,
-            'lon' => $lng
-	    ],
-	    'addition' => $addition,
-	    'source' => $source,
-	    'text' => $text,
-	    'confirm' => 0,
-	    'discard' => 0
+            'location' => [
+                'lat' => $lat,
+                'lon' => $lng
+            ],
+            'addition' => $addition,
+            'source' => $source,
+            'text' => $text,
+            'confirm' => 0,
+            'discard' => 0
     	]
     ];
 
@@ -338,13 +338,13 @@ function update_object_int($id,$lng, $lat, $type="other", $text="", $addition=""
                 ],
                 'addition' => $addition,
                 'text' => $text
-		    ],
-		    'geometry' => $geometry,
-		    'addition' => $addition,
-		    'source' => $source,
-		    'text' => $text,
-		    'confirm' => 0,
-		    'discard' => 0
+                'geometry' => $geometry,
+                'addition' => $addition,
+                'source' => $source,
+                'text' => $text,
+                'confirm' => 0,
+                'discard' => 0
+		    ]
         ]
     ];
 

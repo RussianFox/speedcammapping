@@ -64,9 +64,9 @@ foreach ($files as $file) {
 				$direction=1*trim($cam[6]);
 				$text="";
 				if ( ($speed>0) and ($direction>0) ) {
-					$text="Speed: ".$speed." ".($direction==1?"one way":"in both direction");
+					$text="Speed: ".$speed;
 				};
-				
+				$link="http://speedcamonline.ru/point/$file/$id";
                 $addition=null;
                 if ($direction>0) {
                     $direction = $direction+180;
@@ -79,7 +79,10 @@ foreach ($files as $file) {
                     $addition=($addition?$addition:"")."speed:".$speed.";";
                 };
 				
-				update_object_int($fullid,$lng,$lat,"cam",$text,$addition,"http://speedcamonline.ru/point/$file/$id",$index);
+                if (!update_object_int($fullid,$lng,$lat,"cam",$text,$addition,$link,$index)) {
+                    echo "Failed: $lat|$lng $text ($link) \r\n";
+                };
+				
 				$ids[]=$fullid;
 			}
 		};

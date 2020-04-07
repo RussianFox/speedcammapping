@@ -321,17 +321,31 @@ function update_object_int($id,$lng, $lat, $type="other", $text="", $addition=""
     	'index' => $index,
     	'id'    => $id,
     	'body'  => [
-    		'doc' => [
-                'location' => [
+    		'script' => {
+                'source' => "
+                    if ( ctx._source.location.lat != params.lat || ctx._source.location.lon != params.lon) {
+                        ctx._source.update_time = params.time;
+                    };
+                    ctx._source.location.lat = params.lat;
+                    ctx._source.location.lon = params.lon;
+                    ctx._source.geometry = params.geometry;
+                    ctx._source.addition = params.addition;
+                    ctx._source.text = params.text;
+                    
+                ",
+                'lang': 'painless',
+                'params' => {
+                    'time' => time(),
                     'lat' => 1*$lat,
-                    'lon' => 1*$lng
-                ],
-                'geometry' => $geometry,
-                'addition' => $addition,
-                'text' => $text
-    		],
+                    'lon' => 1*$lng,
+                    'geometry' => $geometry,
+                    'addition' => $addition,
+                    'text' => $text
+                }
+            },
     		'upsert' => [
                 'time' => time(),
+                'update_time' => time(),
                 'type' => $type,
                 'location' => [
                     'lat' => 1*$lat,
@@ -384,6 +398,9 @@ function get_quadr($quadr,$days) {
 			$params['body']['query']['bool']['must_not']['range'] =
 			[
 				"time" => [
+					'lt'=>"now-".$days."d/d"
+				],
+				"update_time" => [
 					'lt'=>"now-".$days."d/d"
 				]
 			];

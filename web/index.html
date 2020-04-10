@@ -384,6 +384,39 @@ div.message.error {
 	 
 	});
 
+	function firstRun(forceOpen=false) {
+		if ( (!Cookies.get('notFirstRun')) | (forceOpen) ) {
+			var titleHelp = "First run"
+			if (forceOpen) {titleHelp = "Help"};
+			$( "<div id=firstRunDiv></div>" ).dialog({
+			   autoOpen: false, width: "90%", title: titleHelp, create: function(event, ui) {
+				 $('#firstRunDiv').load('firstrun.html', function() {
+				   $(this).dialog('open')
+				 });
+			   }
+			});
+		}
+		Cookies.set('notFirstRun', 1, { expires:365 });
+	}
+	
+	
+	var helpControl = L.Control.extend({
+	  options: {
+		position: 'topleft' 
+	  },
+	  onAdd: function (map) {
+		var container = L.DomUtil.create('div', 'help-button');
+		container.innerHTML='?'
+		L.DomEvent
+		    .addListener(container, 'click', L.DomEvent.stopPropagation)
+            .addListener(container, 'click', L.DomEvent.preventDefault)
+			.addListener(container, 'click', function () { firstRun(true); });
+		return container;
+	  }
+	});
+
+	mymap.addControl(new helpControl());
+	
 	var posistionMarks = L.Control.extend({
 	  options: {
 		position: 'topright' 
